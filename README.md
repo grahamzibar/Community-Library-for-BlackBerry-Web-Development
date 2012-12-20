@@ -62,21 +62,90 @@ Most (if not all) calls to the filesystem are asynchronous but no interface for 
 
 For doing something very basic, it's already hard to follow.  Also, what if **/Documents** doesn't exist?  What if **HelloWorld.txt** doesn't exist within it?  We would need separate error handlers for each operation which in turn would then create the proper filesystem entries and then have to recall our original task.  To create bug-free code, it helps to have organized clean code and, with the way this system is built, it becomes hard to do so for more complicated tasks.
 
-To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or error events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* and you can simply listen for the start and end of those tasks when they are, eventually, performed.  The secret is functions are not called as you necessarily call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
+To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or error events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, performed.  The secret is functions are not called as you necessarily call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
 
 ~~~
 
 (function App(FileManager) {
 
 var filesystem = new FileManager(window.TEMPORARY);
-filesystem.init();
-filesystem.changeDir('/Shared/Documents/MyApp');
-filesystem.openTask('FirstFile');
-filesystem.saveNewFile('MyAppsFirstFile.txt', someBlobOrArrayBufferDataWeHave);
-filesystem.closeTask();
+	filesystem.load();
+	filesystem.changeDir('/Shared/Documents/MyApp');
+	filesystem.addEventListener(FunctionQueue.TASK_START, someListener);
+	filesystem.addEventListener(FunctionQueue.TASK_COMPLETE, someOtherListener);
+	
+	filesystem.openTask('FirstFile');
+	filesystem.saveNewFile('MyAppsFirstFile.txt', someBlobOrArrayBufferDataWeHave);
+	filesystem.closeTask();
 
-console.log('Hello World :)');
+	console.log('Hello World');
 
 })(blackberry.grahamzibar.io.FileManager);
 
 ~~~
+
+The key thing to note in the above code example is these operations are **not** called as we call them.  When we call `filesystem.changeDir` and pass in our desired arguments, `filesystem.load()` may not have finished requesting for the filesystem and obtaining usage information.  In fact, the last statement `console.log('Hello World');` will probably execute before we get to navigate to the **/Shared/Documents/MyApp** directory.  The idea here is that we're _queueing_ functions to be executed.  This goes for every function `FileManager` exposes except for `dispatchEvent` - this is the only function in the API that will execute immediately.  Therefore, even `addEventListener` and `removeEventListener` have their algorithms stalled until it's their turn.  All of this is possible because `FileManager` has a private `FunctionQueue` object which stores functions we called if the're not ready to be executed just yet.
+
+### API ###
+
+#### Events ####
+* `addEventListener(eventKey, callbackFN)` - Allows us to listen to events dispatched by the `FileManager`.
+
+* `removeEventListener(eventKey, callbackFN)` - When we no longer need to listen to events, we call this to remove the callback reference from `FileManager`.
+
+* `openTask(id, optCallbackFN)` - Before we start a group of operations, we can call this function to assign all following operations to the **id** of the task until the `closeTask` function is called.
+
+* `closeTask()` - This will close the _last opened task_.  Thus, if we opened 3 tasks, we would need to call close 3 times for all tasks to be complete.  In this sense, we're able to create subtasks fairly easily:  
+~~~
+var startCallback = function() {
+	console.log('Task Started');
+};
+var completeCallback = function() {
+	console.log('Task Complete');
+};
+// OPEN TASK
+filesystem.openTask('MoveFile');
+filesystem.changeDir('/To/Some/Path');
+filesystem.moveFile('MoveMe.txt', '/now/to/another/path');
+// OPEN SUBTASK
+filesystem.openTask('RenameFile', startCallback);
+filesystem.changeDir('/now/to/another/path');
+filesystem.renameFile('MoveMe.txt', 'Renamed.txt');
+// CLOSE SUBTASK
+filesystem.closeTask(completeCallback);	
+// CLOSE TASK
+filesystem.closeTask(completeCallback);
+~~~
+
+To reiterate, since all functions are queued (except `dispatchEvent` inherited from `blackberry.grahamzibar.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move th file, but it queues several operations for requesting **MoveMe.txt** and the directory **/now/to/another/path** and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
+
+#### Navigation and Directories ####
+`changeDir(pathSTR, optCreateBOOL)`
+makeDir
+up
+getParent
+
+#### Entry Modifiction ####
+copyDir
+copyFile
+copyEntry
+moveDir
+moveFile
+moveEntry
+renameDir
+renameFile
+renameEntry
+removeDir
+removeFile
+removeEntry
+
+#### File IO ####
+openFile
+writeTo
+appendTo
+read
+saveNewFile
+
+#### FileSystem ####
+updateInfo
+load
