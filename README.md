@@ -30,7 +30,7 @@ No requirements.
 	instance.addEventListener(eventKey, callback);
 	instance.removeEventListener(eventKey, callback);
 	instance.dispatchEvent(eventKey, eventObj);
-	instance.removeEventListeners(optEventKey); // with no eventKey passed, this removes **ALL** listeners.
+	instance.removeEventListeners(opt_EventKey); // with no eventKey passed, this removes **ALL** listeners.
 
 ## FileManager ##
 
@@ -93,9 +93,9 @@ The key thing to note in the above code example is these operations are **not** 
 
 * `removeEventListener(eventKey, callbackFN)` - When we no longer need to listen to events, we call this to remove the callback reference from `FileManager`.
 
-* `openTask(id, optCallbackFN)` - Before we start a group of operations, we can call this function to assign all following operations to the **id** of the task until the `closeTask` function is called.
+* `openTask(id, opt_CallbackFN)` - Before we start a group of operations, we can call this function to assign all following operations to the **id** of the task until the `closeTask` function is called.
 
-* `closeTask()` - This will close the _last opened task_.  Thus, if we opened 3 tasks, we would need to call close 3 times for all tasks to be complete.  In this sense, we're able to create subtasks fairly easily:  
+* `closeTask(opt_CallbackFN)` - This will close the _last opened task_.  Thus, if we opened 3 tasks, we would need to call close 3 times for all tasks to be complete.  In this sense, we're able to create subtasks fairly easily:  
 ~~~
 var startCallback = function() {
 	console.log('Task Started');
@@ -120,32 +120,56 @@ filesystem.closeTask(completeCallback);
 To reiterate, since all functions are queued (except `dispatchEvent` inherited from `blackberry.grahamzibar.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move th file, but it queues several operations for requesting **MoveMe.txt** and the directory **/now/to/another/path** and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
 
 #### Navigation and Directories ####
-`changeDir(pathSTR, optCreateBOOL)`
-makeDir
-up
-getParent
+* `changeDir(pathSTR, opt_CreateBOOL)` - Much like **cd** in a terminal or command prompt, this function allows us to navigate _into_ a directory and make it our _**current working directory**_.  By default, `opt_CreateBOOL` is **true** (hence the opt_ since this parameter is optional and is of boolean type) and will take care of creating the directory for you if it does not already exists.  It actually takes it one step further and will create any non-existent directory in the path tree.  For example, if you pass **/path/to/my/heart/** to the function but **my** and **heart** don't exist, `changeDir` will take care of that for you unless you explicity pass **false** as the second argument.
+
+* `makeDir(pathSTR)` - Similar to the last function but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_READY` event, we gain access to the entry object.
+
+* `up` - Same as performing a **cd ..**.  We essentially navigate up to the parent directory.
+
+* `getParent` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.
+
 
 #### Entry Modifiction ####
-copyDir
-copyFile
-copyEntry
-moveDir
-moveFile
-moveEntry
-renameDir
-renameFile
-renameEntry
-removeDir
-removeFile
-removeEntry
+
+* `copyDir` - 
+
+* `copyFile` -  
+
+* `copyEntry` - 
+
+* `moveDir` - 
+
+* `moveFile` - 
+
+* `moveEntry` - 
+
+* `renameDir` - 
+
+* `renameFile` - 
+
+* `renameEntry` - 
+
+* `removeDir` - 
+
+* `removeFile` - 
+
+* `removeEntry` - 
+
 
 #### File IO ####
-openFile
-writeTo
-appendTo
-read
-saveNewFile
+* `openFile` - 
+
+* `writeTo` - 
+
+* `appendTo` - 
+
+* `read` - 
+
+* `saveNewFile` - 
+
 
 #### FileSystem ####
-updateInfo
-load
+* `updateInfo` - 
+
+* `load` - 
+
