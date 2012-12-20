@@ -137,7 +137,7 @@ To reiterate, since all functions are queued (except `dispatchEvent` inherited f
 
 #### Entry Modifiction ####
 
-All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fileNameSTR` can be just the name of the directory or file within our _**current working directory**_, the relative path from the _**current working directory**_ to desired entry, or an actual entry object to be modified.  `toPathSTR` is the directory to which we wish to copy or move the directory or file (with the same rules mentioned above) and, for the cases of `copyEntry` and `moveEntry`, `toPathSTRorENTRY` allows us to pass either a target path or entry.  The rest should hopefully be pretty self-explanatory :)
+All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fileNameSTR` can be just the name of the directory or file within our _**current working directory**_, the relative path from the _**current working directory**_ to desired entry, the absolute path from the root of the filesystem, or an actual entry object to be modified.  `toPathSTR` is the directory to which we wish to copy or move the directory or file (with the same rules mentioned above) and, for the cases of `copyEntry` and `moveEntry`, `toPathSTRorENTRY` allows us to pass either a target path or entry.  The rest should hopefully be pretty self-explanatory :)
 
 * `copyDir(dirNameSTR, toPathSTR, opt_newNameSTR)`
 
@@ -165,19 +165,21 @@ All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fil
 
 
 #### File IO ####
-* `openFile` - 
 
-* `writeTo` - 
+All `data` parameters listed below can be either of type [Blob](http://www.w3.org/TR/FileAPI/#blob) or [ArrayBuffer](https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays/ArrayBuffer).  If you need to save base64 data (or read a file and get base64 data), there are a plethora of libraries on the web for converting base64 to ArrayBuffers and vise-versa.  An awesome [base64-binary library](http://blog.danguer.com/2011/10/24/base64-binary-decoding-in-javascript/) by Daniel Guerrero is worth checking-out.
 
-* `appendTo` - 
+* `openFile(fileNameSTR, opt_createBOOL)` - We use this to not only retrieve the **FileEntry** but to also create the **FileReader** for us.  Use the `FILE_READY` event to get the FileEntry and the `FILE_READ` event to get both the **FileEntry** and **FileReader**.  Or, we can simply listen to the `FILE_OPENED` event when using _this particular_ function.  The parameter `fileNameSTR` can be a file name within our _**current working directory**_, a relative path from said directory, or an absolute path.  The second parameter is optional and is **true** by default.  It will create the file if it already does not exist.
 
-* `read` - 
+* `read(entry)` - Here we create the **FileReader** object and dispatch the aforementioned `FILE_READ` event to retireve the **FileReader** of a known entry (must be of type **FileEntry**).
 
-* `saveNewFile` - 
+* `saveNewFile(fileNameSTR, data)` - 
 
+* `writeTo(data)` - 
+
+* `appendTo(data)` - 
 
 #### FileSystem ####
-* `updateInfo()` - 
+* `updateInfo()` - This asks the filesystem for the current available memory, used memory, and overall capacity of the filesystem.  This will dispatch the `INFO_UPDATED` event.
 
-* `load()` - 
+* `load()` - Initializes the filesystem and obtains usage information.  This **must** be called in order for other operations to occur.  This also allows us to setup any appropriate listeners we wish to have registered prior to the filesystem being loaded.
 
