@@ -88,6 +88,10 @@ The key thing to note in the above code example is these operations are **not** 
 
 ### API ###
 
+#### Constructor ####
+* `new blackberry.grahamzibar.io.FileManager(type, opt_size)` - The parameter `type` is either one of the constants window.TEMPORARY or window.PERSISTENT (depending how your app needs to store data) and, by default, `opt_size` is our request for the size of the filesystem in bytes.  By default, we request 5 MB but many implementations of HTML5 FileSystem storage provides us with a much larger amount of data than we request.  
+**NOTE**: to access the _real_ filesystem and not a sandboxed filesystem on **BlackBerry 10**, we must add the following before intializing our filesystem: `blackberry.io.sandbox = false;`.  We _must_ add the feature element `<feature id="blackberry.io" />` to the config.xml despite what the [documentation](https://developer.blackberry.com/html5/apis/blackberry.io.html) tells you.
+
 #### Events ####
 * `addEventListener(eventKey, callbackFN)` - Allows us to listen to events dispatched by the `FileManager`.
 
@@ -122,38 +126,42 @@ To reiterate, since all functions are queued (except `dispatchEvent` inherited f
 #### Navigation and Directories ####
 * `changeDir(pathSTR, opt_CreateBOOL)` - Much like **cd** in a terminal or command prompt, this function allows us to navigate _into_ a directory and make it our _**current working directory**_.  By default, `opt_CreateBOOL` is **true** (hence the opt_ since this parameter is optional and is of boolean type) and will take care of creating the directory for you if it does not already exists.  It actually takes it one step further and will create any non-existent directory in the path tree.  For example, if you pass **/path/to/my/heart/** to the function but **my** and **heart** don't exist, `changeDir` will take care of that for you unless you explicity pass **false** as the second argument.
 
-* `makeDir(pathSTR)` - Similar to the last function but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_READY` event, we gain access to the entry object.
+* `changeDir(directoryEntry)` - **Overloaded method** - Navigates us to a directory using a filesystem entry object we already have.
 
-* `up` - Same as performing a **cd ..**.  We essentially navigate up to the parent directory.
+* `makeDir(pathSTR)` - Similar to the `changeDir` function, but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_READY` event, we gain access to the entry object.
 
-* `getParent` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.
+* `up()` - Same as performing a "**cd ..**".  We essentially navigate up to the parent of our _**current working directory**_.
+
+* `getParent(opt_entry)` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.  We can also pass in an entry object we already have to request for its parent.
 
 
 #### Entry Modifiction ####
 
-* `copyDir` - 
+All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fileNameSTR` can be just the name of the directory or file within our _**current working directory**_, the relative path from the _**current working directory**_ to desired entry, or an actual entry object to be modified.  `toPathSTR` is the directory to which we wish to copy or move the directory or file (with the same rules mentioned above) and, for the cases of `copyEntry` and `moveEntry`, `toPathSTRorENTRY` allows us to pass either a target path or entry.  The rest should hopefully be pretty self-explanatory :)
 
-* `copyFile` -  
+* `copyDir(dirNameSTR, toPathSTR, opt_newNameSTR)`
 
-* `copyEntry` - 
+* `copyFile(fileNameSTR, toPathSTR, opt_newNameSTR)`
 
-* `moveDir` - 
+* `copyEntry(entry, toPathSTRorENTRY, opt_newNameSTR)`
 
-* `moveFile` - 
+* `moveDir(dirNameSTR, toPathSTR, opt_newNameSTR)`
 
-* `moveEntry` - 
+* `moveFile(fileNameSTR, toPathSTR, opt_newNameSTR)`
 
-* `renameDir` - 
+* `moveEntry(entry, toPathSTRorENTRY, opt_newNameSTR)`
 
-* `renameFile` - 
+* `renameDir(dirNameSTR, newNameSTR)` 
 
-* `renameEntry` - 
+* `renameFile(fileNameSTR, newNameSTR)`
 
-* `removeDir` - 
+* `renameEntry(entry, newNameSTR)`
 
-* `removeFile` - 
+* `removeDir(dirNameSTR)` 
 
-* `removeEntry` - 
+* `removeFile(fileNameSTR)`
+
+* `removeEntry(entry)`
 
 
 #### File IO ####
@@ -169,7 +177,7 @@ To reiterate, since all functions are queued (except `dispatchEvent` inherited f
 
 
 #### FileSystem ####
-* `updateInfo` - 
+* `updateInfo()` - 
 
-* `load` - 
+* `load()` - 
 
