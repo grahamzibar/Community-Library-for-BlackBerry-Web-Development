@@ -121,7 +121,7 @@ filesystem.closeTask(completeCallback);
 filesystem.closeTask(completeCallback);
 ~~~
 
-To reiterate, since all functions are queued (except `dispatchEvent` inherited from `blackberry.grahamzibar.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move th file, but it queues several operations for requesting **MoveMe.txt** and the directory **/now/to/another/path** and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
+To reiterate, since all functions are queued (except `dispatchEvent` which is inherited from `blackberry.grahamzibar.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move the file but it queues several operations: requesting **MoveMe.txt**, requesting the directory **/now/to/another/path**, and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
 
 #### Navigation and Directories ####
 * `changeDir(pathSTR, opt_CreateBOOL)` - Much like **cd** in a terminal or command prompt, this function allows us to navigate _into_ a directory and make it our _**current working directory**_.  By default, `opt_CreateBOOL` is **true** (hence the opt_ since this parameter is optional and is of boolean type) and will take care of creating the directory for you if it does not already exists.  It actually takes it one step further and will create any non-existent directory in the path tree.  For example, if you pass **/path/to/my/heart/** to the function but **my** and **heart** don't exist, `changeDir` will take care of that for you unless you explicity pass **false** as the second argument.
@@ -168,18 +168,30 @@ All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fil
 
 All `data` parameters listed below can be either of type [Blob](http://www.w3.org/TR/FileAPI/#blob) or [ArrayBuffer](https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays/ArrayBuffer).  If you need to save base64 data (or read a file and get base64 data), there are a plethora of libraries on the web for converting base64 to ArrayBuffers and vise-versa.  An awesome [base64-binary library](http://blog.danguer.com/2011/10/24/base64-binary-decoding-in-javascript/) by Daniel Guerrero is worth checking-out.
 
-* `openFile(fileNameSTR, opt_createBOOL)` - We use this to not only retrieve the **FileEntry** but to also create the **FileReader** for us.  Use the `FILE_READY` event to get the FileEntry and the `FILE_READ` event to get both the **FileEntry** and **FileReader**.  Or, we can simply listen to the `FILE_OPENED` event when using _this particular_ function.  The parameter `fileNameSTR` can be a file name within our _**current working directory**_, a relative path from said directory, or an absolute path.  The second parameter is optional and is **true** by default.  It will create the file if it already does not exist.
+* `openFile(fileNameSTR, opt_createBOOL)` - We use this to not only retrieve the **FileEntry** and store it as our _**current_working_file**_ but to also create the **FileReader** for us.  Use the `FILE_READY` event to get the FileEntry and the `FILE_READ` event to get both the **FileEntry** and **FileReader**.  Or, we can simply listen to the `FILE_OPENED` event when using _this particular_ function.  The parameter `fileNameSTR` can be a file name within our _**current working directory**_, a relative path from said directory, or an absolute path.  The second parameter is optional and is **true** by default.  It will create the file if it already does not exist.
 
 * `read(entry)` - Here we create the **FileReader** object and dispatch the aforementioned `FILE_READ` event to retireve the **FileReader** of a known entry (must be of type **FileEntry**).
 
-* `saveNewFile(fileNameSTR, data)` - 
+* `saveNewFile(fileNameSTR, data)` - This handy function saves us the trouble of handling several asynchronous operations and simply saving some data somewhere on the filesystem with the data we need to store.  Without handling any errors or callbacks, we can simply invoke this method and walk away.  Nice, right?
 
-* `writeTo(data)` - 
+The next two funtions only work once we've opened a file using the `openFile` function.  They act on the _**current working file**_ and can write an entire file or add data to the end of the file respectively.
 
-* `appendTo(data)` - 
+* `writeTo(data)`
+
+* `appendTo(data)`
 
 #### FileSystem ####
 * `updateInfo()` - This asks the filesystem for the current available memory, used memory, and overall capacity of the filesystem.  This will dispatch the `INFO_UPDATED` event.
 
 * `load()` - Initializes the filesystem and obtains usage information.  This **must** be called in order for other operations to occur.  This also allows us to setup any appropriate listeners we wish to have registered prior to the filesystem being loaded.
 
+
+### Events ###
+
+The `FileManager` exposes a great deal of events to which we can subscribe, depending on how we wish to use the filesystem for our app.
+
+#### Event Classes (All are private and are used for reference only) ####
+
+
+
+#### Event Constants ####
