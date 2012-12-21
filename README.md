@@ -305,23 +305,34 @@ _returns `RequestEvent`
 
 ##### On-Complete Events #####
 
-* `FileManager.FILESYSTEM_READY`
+* `FileManager.FILESYSTEM_READY` - The filesystem has initialized and we're ready to perform operations on the filesystem.  Any queued operations will begin to execute.
+_returns_ `FileSystemEvent`
 
-* `FileManager.INFO_UPDATED`
+* `FileManager.INFO_UPDATED` - We now have the latest filesystem informaton.  
+_returns_ `FileSystemEvent`
 
-* `FileManager.DIRECTORY_READY`
+* `FileManager.DIRECTORY_READY` - A diretory that was requested is now available  
+_returns_ `EntryReadyEvent`
 
-* `FileManager.DIRECTORY_CHANGED`
+* `FileManager.DIRECTORY_CHANGED` - If we not only requested a diretory, but did it through `changeDir` and we have navigated into it, this event is fired.  
+_returns_ `EntryReadyEvent`
 
-* `FileManager.FILE_READY`
+* `FileManager.FILE_READY` - Whenever a file entry has been requested to perform an operation and is now available.  
+_returns_ `EntryReadyEvent`
 
-* `FileManager.FILE_READ`
+* `FileManager.FILE_READ` - A file reader has been created and can be accessed through this event.  
+_returns_ `ReadEvent`
 
-* `FileManager.FILE_WRITTEN`
+* `FileManager.FILE_WRITTEN` - Data has been written to a file.  
+_returns_ `WriteEvent`
 
-* `FileManager.FILE_OPENED`
+* `FileManager.FILE_OPENED` - This is the combination of both retrieving a file entry and creating its file reader.  
+_returns_ `ReadEvent`
 
-* `FileManager.FILE_CREATED`
+* `FileManager.FILE_CREATED` - This is the combination of creating a file if it is not already there, requesting its file writer, and writing data to it.  
+_returns `WriteEvent`
+
+The following _return_ the `ModifyEvent`.
 
 * `FileManager.ENTRY_MOVED`
 
@@ -331,12 +342,19 @@ _returns `RequestEvent`
 
 * `FileManager.ENTRY_REMOVED`
 
-* `FileManager.ENTRIES_LISTED`
+Lastly, this is when a successful reading of a directory's entries has occured:
+
+* `FileManager.ENTRIES_LISTED`  
+_returns_ `ListEvent`
 
 
-Error Events
+##### Error Events #####
 
-* `FileManager.ERROR`
+The following events are when any of the above **request** events have failed to perform successfuly and thus won't produce an **on-complete** event.  Note a handful of events don't have a corresponding error event.  This is simply because those operations are a combination of smaller operations which each already have their own unique and descriptive event listed below.
+
+All below events _return_ the `ErrorEvent`.
+
+* `FileManager.ERROR` - General error event.  Any other event after this will dispatch this event first.
 
 * `FileManager.FILESYSTEM_ERROR`
 
