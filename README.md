@@ -192,9 +192,65 @@ The next two funtions only work once we've opened a file using the `openFile` fu
 
 The `FileManager` exposes a great deal of events to which we can subscribe, depending on how we wish to use the filesystem for our app.
 
-#### Event Classes (All are private and are used for reference only) ####
+#### Event Classes ####
 
+All are private and are used for reference only so you cannot create instances of these yourselves.  However, these are the classes our `FileManager` uses to create events to dispatch.  Below, find the interfaces available to you.
 
+~~~
+FileSystemEvent {
+	fileSystem
+	
+	// The following are represented in bytes
+	used
+	available
+	capacity
+}
+
+EntryRequestEvent {
+	path
+	create // Did this request demand we create the entry if it does not exist?
+}
+
+RequestEvent {
+	entry
+}
+
+ModifyRequestEvent {
+	type // 
+	path
+	toPath
+	newName
+}
+
+EntryReadyEvent {
+	entry
+}
+
+ModifyEvent {
+	type
+	entry
+}
+
+ListEvent {
+	directory
+	entries // Not an array, but it does have a `length` property
+}
+
+ReadEvent {
+	entry
+	file // We use this to read data from the file
+}
+
+WriteEvent {
+	entry
+	writer // We use this to manually write data to the file
+}
+
+ErrorEvent {
+	error
+	message
+}
+~~~
 
 #### Event Constants ####
 
@@ -206,30 +262,45 @@ Request events don't fire when we request for these operations to occur, but whe
 
 * `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  
 _returns_ `EntryRequestEvent`
+
 * `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory.  
 _returns_ `EntryRequestEvent`
 
 * `FileManager.FILE_REQUESTED` - The **FileEntry** has been asked for.  
 _returns_ `EntryRequestEvent`
-* `FileManager.FILE_READ_REQUESTED` - The request for the **FileReader*.  
+
+* `FileManager.FILE_READ_REQUESTED` - The request for the **FileReader**.  
 _returns_ `RequestEvent`
+
 * `FileManager.FILE_WRITE_REQUESTED` - We wish to start writing data to a file, but we must wait for the **FileWriter**  
 _returns_ `RequestEvent`
-* `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.  
+
+* `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.
 _returns_ `EntryRequestEvent`
+
 * `FileManager.FILE_CREATE_REQUESTED` - Whenever we use `saveNewFile` to request the creation of a file entry, get the file writer, and write data to the disk.  
 _returns_ `EntryRequestEvent`
 
+
 The following are pretty self explanatory
 
-* `FileManager.ENTRY_MOVE_REQUESTED` - _returns_ **ModifyRequestEvent**
-* `FileManager.ENTRY_COPY_REQUESTED` - _returns_ **ModifyRequestEvent**
-* `FileManager.ENTRY_RENAME_REQUESTED` - _returns_ **ModifyRequestEvent**
-* `FileManager.ENTRY_REMOVE_REQUESTED` - _returns_ **ModifyRequestEvent**
+* `FileManager.ENTRY_MOVE_REQUESTED`  
+_returns_ `ModifyRequestEvent`
 
-Lastly, the following event is when we've requested our _**current working directory**_ for its entries (be it files or folders.
+* `FileManager.ENTRY_COPY_REQUESTED`  
+_returns_ `ModifyRequestEvent`
 
-* `FileManager.ENTRIES_LIST_REQUESTED` - _returns **RequestEvent**
+* `FileManager.ENTRY_RENAME_REQUESTED`  
+_returns_ `ModifyRequestEvent`
+
+* `FileManager.ENTRY_REMOVE_REQUESTED`  
+_returns_ `ModifyRequestEvent`
+
+
+Lastly, the following event is when we've requested our _**current working directory**_ or some other entry for its entries (be it files or folders).
+
+* `FileManager.ENTRIES_LIST_REQUESTED`  
+_returns `RequestEvent`
 
 
 ##### On-Complete Events #####
