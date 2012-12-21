@@ -60,15 +60,15 @@ Most (if not all) calls to the filesystem are asynchronous but no interface for 
 	};
 	
 
-For doing something very basic, it's already hard to follow.  Also, what if **/Documents** doesn't exist?  What if **HelloWorld.txt** doesn't exist within it?  We would need separate error handlers for each operation which in turn would then create the proper filesystem entries and then have to recall our original task.  To create bug-free code, it helps to have organized clean code and, with the way this system is built, it becomes hard to do so for more complicated tasks.
+For doing something very basic, it's already hard to follow.  Also, what if "**/Documents**" doesn't exist?  What if "**HelloWorld.txt**" doesn't exist within it?  We would need separate error handlers for each operation which, in turn, would create the proper filesystem entries and then we would have to recall our original task.  To create bug-free code, it helps to have organized code and, with the way this system is built, it becomes hard to do so for more complicated tasks.
 
-To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or error events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, performed.  The secret is functions are not called as you necessarily call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
+To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, completed.  The secret is these operations are not performed necessarily when you call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
 
 ~~~
 
 (function App(FileManager) {
 
-var filesystem = new FileManager(window.TEMPORARY);
+	var filesystem = new FileManager(window.TEMPORARY);
 	filesystem.load();
 	filesystem.changeDir('/Shared/Documents/MyApp');
 	filesystem.addEventListener(FunctionQueue.TASK_START, someListener);
@@ -84,7 +84,7 @@ var filesystem = new FileManager(window.TEMPORARY);
 
 ~~~
 
-The key thing to note in the above code example is these operations are **not** called as we call them.  When we call `filesystem.changeDir` and pass in our desired arguments, `filesystem.load()` may not have finished requesting for the filesystem and obtaining usage information.  In fact, the last statement `console.log('Hello World');` will probably execute before we get to navigate to the **/Shared/Documents/MyApp** directory.  The idea here is that we're _queueing_ functions to be executed.  This goes for every function `FileManager` exposes except for `dispatchEvent` - this is the only function in the API that will execute immediately.  Therefore, even `addEventListener` and `removeEventListener` have their algorithms stalled until it's their turn.  All of this is possible because `FileManager` has a private `FunctionQueue` object which stores functions we called if the're not ready to be executed just yet.
+The key thing to note in the above code example is these operations are **not** called as we call them.  When we call `filesystem.changeDir` and pass in our desired arguments, `filesystem.load()` may not have finished requesting for the filesystem and obtaining usage information.  In fact, the last statement `console.log('Hello World');` will probably execute before we get to navigate to the "**/Shared/Documents/MyApp**" directory.  The idea here is that we're _queueing_ functions to be executed.  This goes for every function `FileManager` exposes except for `dispatchEvent` -- this is the only function in the API that will execute immediately.  Therefore, even `addEventListener` and `removeEventListener` have their algorithms stalled until it's their turn.  All of this is possible because `FileManager` has a private `FunctionQueue` object which stores functions we call if the're not ready to be executed just yet.
 
 ### API ###
 
@@ -170,7 +170,7 @@ All filesystem entry modifications are very similar.  Both `dirNameSTR` and `fil
 
 All `data` parameters listed below can be either of type [Blob](http://www.w3.org/TR/FileAPI/#blob) or [ArrayBuffer](https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays/ArrayBuffer).  If you need to save base64 data (or read a file and get base64 data), there are a plethora of libraries on the web for converting base64 to ArrayBuffers and vise-versa.  An awesome [base64-binary library](http://blog.danguer.com/2011/10/24/base64-binary-decoding-in-javascript/) by Daniel Guerrero is worth checking-out.
 
-* `openFile(fileNameSTR, opt_createBOOL)` - We use this to not only retrieve the **FileEntry** and store it as our _**current_working_file**_ but to also create the **FileReader** for us.  Use the `FILE_READY` event to get the FileEntry and the `FILE_READ` event to get both the **FileEntry** and **FileReader**.  Or, we can simply listen to the `FILE_OPENED` event when using _this particular_ function.  The parameter `fileNameSTR` can be a file name within our _**current working directory**_, a relative path from said directory, or an absolute path.  The second parameter is optional and is **true** by default.  It will create the file if it already does not exist.
+* `openFile(fileNameSTR, opt_createBOOL)` - We use this to not only retrieve the **FileEntry** and store it as our _**current working file**_ but to also create the **FileReader** for us.  Use the `FILE_READY` event to get the FileEntry and the `FILE_READ` event to get both the **FileEntry** and **FileReader**.  Or, we can simply listen to the `FILE_OPENED` event when using _this particular_ function.  The parameter `fileNameSTR` can be a file name within our _**current working directory**_, a relative path from said directory, or an absolute path.  The second parameter is optional and is **true** by default.  It will create the file if it already does not exist.
 
 * `read(entry)` - Here we create the **FileReader** object and dispatch the aforementioned `FILE_READ` event to retireve the **FileReader** of a known entry (must be of type **FileEntry**).
 
@@ -204,19 +204,21 @@ All constants are static and exist as properties of the `FileManager` class.  Be
 
 Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.
 
-* `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  _returns_ **EntryRequestEvent**
-* `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory.  _returns_ **EntryRequestEvent**
+* `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  
+_returns_ `EntryRequestEvent`
+* `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory.  
+_returns_ `EntryRequestEvent`
 
 * `FileManager.FILE_REQUESTED` - The **FileEntry** has been asked for.  
-_returns_ **EntryRequestEvent**
+_returns_ `EntryRequestEvent`
 * `FileManager.FILE_READ_REQUESTED` - The request for the **FileReader*.  
-_returns_ **RequestEvent**
+_returns_ `RequestEvent`
 * `FileManager.FILE_WRITE_REQUESTED` - We wish to start writing data to a file, but we must wait for the **FileWriter**  
-_returns_ **RequestEvent**
+_returns_ `RequestEvent`
 * `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.  
-_returns_ **EntryRequestEvent**
+_returns_ `EntryRequestEvent`
 * `FileManager.FILE_CREATE_REQUESTED` - Whenever we use `saveNewFile` to request the creation of a file entry, get the file writer, and write data to the disk.  
-_returns_ **EntryRequestEvent**
+_returns_ `EntryRequestEvent`
 
 The following are pretty self explanatory
 
