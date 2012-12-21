@@ -194,7 +194,7 @@ The `FileManager` exposes a great deal of events to which we can subscribe, depe
 
 #### Event Classes ####
 
-All are private and are used for reference only so you cannot create instances of these yourselves.  However, these are the classes our `FileManager` uses to create events to dispatch.  Below, find the interfaces available to you.
+All are **private** and are used for reference only so you cannot create instances of these yourselves.  However, these are the classes our `FileManager` uses to create events to dispatch.  Below, find the interfaces available to you.
 
 ~~~
 FileSystemEvent {
@@ -258,7 +258,7 @@ All constants are static and exist as properties of the `FileManager` class.  Be
 
 ##### Request Events #####
 
-Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.
+Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.  These are _excellent for listening to when the filesystem is working_.
 
 * `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  
 _returns_ `EntryRequestEvent`
@@ -275,7 +275,7 @@ _returns_ `RequestEvent`
 * `FileManager.FILE_WRITE_REQUESTED` - We wish to start writing data to a file, but we must wait for the **FileWriter**  
 _returns_ `RequestEvent`
 
-* `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.
+* `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.  
 _returns_ `EntryRequestEvent`
 
 * `FileManager.FILE_CREATE_REQUESTED` - Whenever we use `saveNewFile` to request the creation of a file entry, get the file writer, and write data to the disk.  
@@ -306,20 +306,29 @@ _returns `RequestEvent`
 ##### On-Complete Events #####
 
 * `FileManager.FILESYSTEM_READY`
+
 * `FileManager.INFO_UPDATED`
 
 * `FileManager.DIRECTORY_READY`
+
 * `FileManager.DIRECTORY_CHANGED`
 
 * `FileManager.FILE_READY`
+
 * `FileManager.FILE_READ`
+
 * `FileManager.FILE_WRITTEN`
+
 * `FileManager.FILE_OPENED`
+
 * `FileManager.FILE_CREATED`
 
 * `FileManager.ENTRY_MOVED`
+
 * `FileManager.ENTRY_COPIED`
+
 * `FileManager.ENTRY_RENAMED`
+
 * `FileManager.ENTRY_REMOVED`
 
 * `FileManager.ENTRIES_LISTED`
@@ -328,18 +337,25 @@ _returns `RequestEvent`
 Error Events
 
 * `FileManager.ERROR`
+
 * `FileManager.FILESYSTEM_ERROR`
+
 * `FileManager.INFO_ERROR`
 
 * `FileManager.DIRECTORY_ERROR`
 
 * `FileManager.FILE_ERROR`
+
 * `FileManager.FILE_READ_ERROR`
+
 * `FileManager.FILE_WRITE_ERROR`
 
 * `FileManager.ENTRY_MOVE_ERROR`
+
 * `FileManager.ENTRY_COPY_ERROR`
+
 * `FileManager.ENTRY_RENAME_ERROR`
+
 * `FileManager.ENTRY_REMOVE_ERROR`
 
 * `FileManager.ENTRIES_LIST_ERROR`
