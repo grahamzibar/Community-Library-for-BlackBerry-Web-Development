@@ -134,6 +134,8 @@ To reiterate, since all functions are queued (except `dispatchEvent` which is in
 
 * `getParent(opt_entry)` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.  We can also pass in an entry object we already have to request for its parent.
 
+* `readEntries(opt_directoryEntry)' - A lot like **ls**, this will either use the `opt_directoryEntry` or our _**current working directory**_ as the parent entry from which to list its entries.
+
 
 #### Entry Modifiction ####
 
@@ -195,3 +197,76 @@ The `FileManager` exposes a great deal of events to which we can subscribe, depe
 
 
 #### Event Constants ####
+
+All constants are static and exist as properties of the `FileManager` class.  Below, we just refer to the class as is but don't forget it exists within the `blackberry.grahamzibar.io` namespace.  Just like in an example above, I like to cache classes into variables as so: `var FileManager = blackberry.grahamzibar.io.FileManager`.
+
+##### Request Events #####
+
+Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.
+
+* `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  _returns_ **EntryRequestEvent**
+* `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory.  _returns_ **EntryRequestEvent**
+
+* `FileManager.FILE_REQUESTED` - The **FileEntry** has been asked for.  
+_returns_ **EntryRequestEvent**
+* `FileManager.FILE_READ_REQUESTED` - The request for the **FileReader*.  
+_returns_ **RequestEvent**
+* `FileManager.FILE_WRITE_REQUESTED` - We wish to start writing data to a file, but we must wait for the **FileWriter**  
+_returns_ **RequestEvent**
+* `FileManager.FILE_OPEN_REQUESTED` - We have asked to retrieve a file entry and obtain the file reader using `openFile`.  
+_returns_ **EntryRequestEvent**
+* `FileManager.FILE_CREATE_REQUESTED` - Whenever we use `saveNewFile` to request the creation of a file entry, get the file writer, and write data to the disk.  
+_returns_ **EntryRequestEvent**
+
+The following are pretty self explanatory
+
+* `FileManager.ENTRY_MOVE_REQUESTED` - _returns_ **ModifyRequestEvent**
+* `FileManager.ENTRY_COPY_REQUESTED` - _returns_ **ModifyRequestEvent**
+* `FileManager.ENTRY_RENAME_REQUESTED` - _returns_ **ModifyRequestEvent**
+* `FileManager.ENTRY_REMOVE_REQUESTED` - _returns_ **ModifyRequestEvent**
+
+Lastly, the following event is when we've requested our _**current working directory**_ for its entries (be it files or folders.
+
+* `FileManager.ENTRIES_LIST_REQUESTED` - _returns **RequestEvent**
+
+
+##### On-Complete Events #####
+
+* `FileManager.FILESYSTEM_READY`
+* `FileManager.INFO_UPDATED`
+
+* `FileManager.DIRECTORY_READY`
+* `FileManager.DIRECTORY_CHANGED`
+
+* `FileManager.FILE_READY`
+* `FileManager.FILE_READ`
+* `FileManager.FILE_WRITTEN`
+* `FileManager.FILE_OPENED`
+* `FileManager.FILE_CREATED`
+
+* `FileManager.ENTRY_MOVED`
+* `FileManager.ENTRY_COPIED`
+* `FileManager.ENTRY_RENAMED`
+* `FileManager.ENTRY_REMOVED`
+
+* `FileManager.ENTRIES_LISTED`
+
+
+Error Events
+
+* `FileManager.ERROR`
+* `FileManager.FILESYSTEM_ERROR`
+* `FileManager.INFO_ERROR`
+
+* `FileManager.DIRECTORY_ERROR`
+
+* `FileManager.FILE_ERROR`
+* `FileManager.FILE_READ_ERROR`
+* `FileManager.FILE_WRITE_ERROR`
+
+* `FileManager.ENTRY_MOVE_ERROR`
+* `FileManager.ENTRY_COPY_ERROR`
+* `FileManager.ENTRY_RENAME_ERROR`
+* `FileManager.ENTRY_REMOVE_ERROR`
+
+* `FileManager.ENTRIES_LIST_ERROR`
