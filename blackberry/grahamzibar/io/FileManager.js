@@ -310,6 +310,7 @@
 		
 		var fileEntryAsync = function(name, create) {
 			__self__.dispatchEvent(FileManager.FILE_REQUESTED, new EntryRequestEvent(name, create));
+			
 			var fullPath;
 			if (name.charAt(0) != '/') {
 				fullPath = _directory.fullPath;
@@ -317,7 +318,7 @@
 				fullPath += name;
 			} else
 				fullPath = name;
-			if (_state == FileManager.OPEN_ACTION && _fileEntry.fullPath == fullPath) {
+			if (_state == FileManager.OPEN_ACTION && _fileEntry && _fileEntry.fullPath == fullPath) {
 			//if ((_state == FileManager.OPEN_ACTION && _fileEntry.fullPath == fullPath) ||
 				//_modifyEntry.fullPath == fullPath) {
 				_queue.next();
@@ -372,6 +373,7 @@
 		var writeAsync = function(data) {
 			var writer;
 			var e;
+			console.log('here as well!');
 			if (_state == FileManager.OPEN_ACTION) {
 				writer = _fileWriter;
 				e = new WriteEvent(_fileEntry, writer);
@@ -385,7 +387,7 @@
 			_queue.next();
 		};
 		var write = function() {
-			_queue.push(appendAsync, arguments);
+			_queue.push(writeAsync, arguments);
 		};
 		
 		
@@ -642,6 +644,8 @@
 			fileEntry(name, true);
 			fileWriter();
 			write(data);
+			
+			_queue.next();
 		};
 		var saveNewFile = function() {
 			_queue.push(saveNewFileAsync, arguments);
