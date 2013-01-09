@@ -13,18 +13,18 @@
 		var _events = {};
 		var _count = {};
 		
-		var addEventListener = function addEventListener(event, callback) {
+		this.addEventListener = function addEventListener(event, callback) {
 			var rry = _events[event];
 			if (!rry) {
-				_events[event] = {};
+				rry = _events[event] = {};
 				_count[event] = 0;
 			}
-			_count++;
+			_count[event]++;
 			var id = callback.blackberry_grahamzibar_events_EventDispatcher_ID = ID++;
 			rry[id] = callback;
 		};
 		
-		var removeEventListener = function removeEventListener(event, callback) {
+		this.removeEventListener = function removeEventListener(event, callback) {
 			var rry = _events[event];
 			if (!rry)
 				return;
@@ -40,7 +40,7 @@
 			callback.blackberry_grahamzibar_events_EventDispatcher_ID = 0;
 		};
 		
-		var dispatchEvent = function dispatchEvent(event, data) {
+		this.dispatchEvent = function dispatchEvent(event, data) {
 			var rry = _events[event];
 			if (!rry)
 				return;
@@ -48,7 +48,7 @@
 				rry[id](data);
 		};
 		
-		var removeEventListeners = function removeEventListeners(event) {
+		this.removeEventListeners = function removeEventListeners(event) {
 			if (event) {
 				delete _events[event];
 				delete _count[event];

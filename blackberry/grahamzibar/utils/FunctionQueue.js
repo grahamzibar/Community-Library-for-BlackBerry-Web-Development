@@ -7,7 +7,7 @@
 	if (!blackberry.grahamzibar.utils)
 		blackberry.grahamzibar.utils = new Object();
 	
-	var Queued = function Queued(id, type, method, arguments) {
+	var Queued = function Queued(id, type, method, args) {
 		this.id = id;
 		this.type = type;
 		this.method = method;
@@ -23,7 +23,7 @@
 		var _started = false;
 		var _busy = false;
 		
-		var openTaskHandler = function(callback) {
+		var openTaskHandler = function(id, callback) {
 			_openTasks[_openTasks.length] = id;
 			console.log('TASK STARTED:', id);
 			if (callback)
@@ -50,7 +50,7 @@
 			_taskQueue[_taskQueue.length] = new Queued(getCurrentTask(), type, method, args);
 		};
 		
-		this.openTask = function(callback) {
+		this.openTask = function(id, callback) {
 			push(OPEN_TASK_TYPE, openTaskHandler, arguments);
 			if (_started && !_busy && _taskQueue.length == 1)
 				nextHandler();
@@ -93,6 +93,10 @@
 			_openTasks = new Array();
 			_taskQueue = new Array();
 			_busy = false;
+		};
+		
+		this.length = function() {
+			return _taskQueue.length;
 		};
 		
 		var getCurrentTask = this.getCurrentTask = function() {

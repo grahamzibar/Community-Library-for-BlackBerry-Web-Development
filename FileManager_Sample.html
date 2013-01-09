@@ -1,0 +1,278 @@
+<!doctype html>
+
+<html>
+	<head>
+		<title>FileManager Sample</title>
+		<script type="text/javascript" src="blackberry/grahamzibar/events/EventDispatcher.js"></script>
+		<script type="text/javascript" src="blackberry/grahamzibar/utils/FunctionQueue.js"></script>
+		<script type="text/javascript" src="blackberry/grahamzibar/io/FileManager.js"></script>
+		
+		<style type="text/css">
+		<!--
+			body {
+				margin:0;
+				padding:0;
+				text-aling:center;
+			}
+			
+			body > div:first-child {
+				margin:0 auto;
+				padding:0 20px;
+				max-width:920px;
+				text-align:left;
+			}
+			
+			.FileManagerOutput, .FileManagerInput {
+				width:48%;
+			}
+			
+			.FileManagerOutput {
+				float:left;
+			}
+			
+			.FileManagerInput {
+				float:right;
+			}
+			
+			#fileManager_output {
+				font-family:monospace;
+			}
+			
+			.Clear {
+				clear:both;
+			}
+		-->
+		</style>
+	</head>
+	
+	<body>
+		<div>
+			<h1>This page uses EventDispatcher and FunctionQueue for <em>FileManager</em></h1>
+			
+			<h2>Current Directory</h2>
+			<p id="currentDirectory_output">loading..</p>
+			
+			<div class="FileManagerOutput">
+				<h2>FileManager Output</h2>
+				<p id="fileManager_output">&gt;&nbsp;loading..</p>
+			</div>
+			
+			<div class="FileManagerInput">
+				<h2>Change Directory</h2>
+				<label>Which directory, homie?</label>
+				<input id="changeDir_textField" /><br />
+				<button id="changeDir_button">LET'S DO THIS</button>
+				<button id="changeDirStrict_button">LET'S BE PICKY..</button>
+				
+				<h2>View Some Entries</h2>
+				<button id="readEntries_button">SHOW ME WHAT'S WHAT</button>
+				
+				<h2>Save a Text File</h2>
+				<label>Give'er a name!</label><input id="fileName_textField" type="text" /><br />
+				<label>Put some text in it..</label><input id="fileData_textField" type="text" /><br />
+				<button id="file_button">SAVE DAT FILE</button>
+			</div>
+			
+			<div class="Clear"></div>
+			
+			
+		</div>
+		
+		<script type="text/javascript">
+		<!--
+			/* Just some junk */
+			var logger = document.getElementById('fileManager_output');
+			var currentDirectory = document.getElementById('currentDirectory_output');
+			
+			var directoryInput = document.getElementById('changeDir_textField');
+			var directoryButton = document.getElementById('changeDir_button');
+			var strictButton = document.getElementById('changeDirStrict_button');
+			
+			var listingButton = document.getElementById('readEntries_button');
+			
+			var fileNameField = document.getElementById('fileName_textField');
+			var fileDataField = document.getElementById('fileData_textField');
+			var fileButton = document.getElementById('file_button');
+			
+			
+			/* Test event dispatcher */
+			var ed = new blackberry.grahamzibar.events.EventDispatcher();
+			console.log('EVENT DISPATCHER INITIALIZED');
+			
+			var eventHandler = function(e) {
+				console.log(e.msg);
+			};
+			
+			ed.addEventListener('name', eventHandler);
+			console.log('DISPATCHING EVENT');
+			ed.dispatchEvent('name', { msg: 'EVENT RECEIVED!' });
+			
+			
+			
+			/* Test Function Queue */
+			var fq = new blackberry.grahamzibar.utils.FunctionQueue();
+			
+			var taskStart = function() {
+				console.log('TASK STARTED');
+			};
+			var taskComplete = function() {
+				console.log('TASK COMPLETE');
+			};
+			var queueMe = function(num) {
+				console.log(num, 'STARTED');
+				var timer = setTimeout(function() {
+					clearTimeout(timer);
+					delete timer;
+					
+					console.log(num, 'COMPLETED');
+					console.log('NEXT CALLED');
+					fq.next();
+				}, 250);
+			};
+			
+			fq.openTask('BEST TASK EVER', taskStart);
+			fq.push(queueMe, [1]);
+			fq.push(queueMe, [2]);
+			fq.push(queueMe, [3]);
+			fq.push(queueMe, [4]);
+			fq.push(queueMe, [5]);
+			fq.closeTask(taskComplete);
+			
+			var fm;
+			var startFileManager = function() {
+				console.log('FileManager Tests...');
+				var FileManager = blackberry.grahamzibar.io.FileManager;
+				fm = new FileManager(window.TEMPORARY);
+				
+				// EVENTS
+				fm.addEventListener(FileManager.FILESYSTEM_READY, onFileSystemReady);
+				
+				fm.addEventListener(FileManager.DIRECTORY_CHANGE_REQUESTED, onChangeDirRequest);
+				fm.addEventListener(FileManager.DIRECTORY_CHANGED, onChangeDirReady);
+				
+				fm.addEventListener(FileManager.DIRECTORY_REQUESTED, onDirRequest);
+				fm.addEventListener(FileManager.DIRECTORY_READY, onDirReady);
+				
+				fm.addEventListener(FileManager.FILE_CREATE_REQUESTED, onSaveRequest);
+				fm.addEventListener(FileManager.FILE_CREATED, onSaveReady);
+				
+				fm.addEventListener(FileManager.ENTRIES_LIST_REQUESTED, onReadEntriesRequest);
+				fm.addEventListener(FileManager.ENTRIES_LISTED, onReadEntries);
+				
+				fm.addEventListener(FileManager.ERROR, onAnyError);
+				
+				// OPERATIONS
+				fm.load();
+				
+				// UI
+				directoryButton.addEventListener('click', changeDir);
+				listingButton.addEventListener('click', readEntries);
+				strictButton.addEventListener('click', changeDirStrict);
+				
+				fileButton.addEventListener('click', saveFile);
+			};
+			
+			
+			
+			var log = function(msg) {
+				var appendMe = '<br />&gt;&nbsp;';
+				appendMe += msg;
+				logger.innerHTML += appendMe;
+			};
+			
+			var updateDir = function(dir) {
+				currentDirectory.innerHTML = dir;
+			};
+			
+			
+			
+			var changeDir = function() {
+				if (directoryInput.value)
+					fm.changeDir(directoryInput.value);
+			};
+			
+			var changeDirStrict = function() {
+				if (directoryInput.value)
+					fm.changeDir(directoryInput.value, false);
+			};
+			
+			var readEntries = function() {
+				fm.readEntries();
+			};
+			
+			var saveFile = function() {
+				fm.saveNewFile(fileNameField.value, new Blob([fileDataField.value], { type: "text/plain" }));
+			};
+			
+			
+			
+			
+			var onFileSystemReady = function() {
+				log('Filesystem Ready.');
+				updateDir('/');
+			};
+			
+			var onAnyError = function(e) {
+				alert(e.message);
+			};
+			
+			var onDirRequest = function(e) {
+				log('Requesting access to "' + e.path + '"..');
+			};
+			
+			var onDirReady = function(e) {
+				log('Access obtained:');
+				log('&nbsp;&nbsp;-- "' + e.entry.fullPath + '"');
+			};
+			
+			var onChangeDirRequest = function(e) {
+				updateDir('...');
+				log('Changing Directory..');
+				log('&nbsp;&nbsp;-- Can create: ' + e.create);
+			};
+			
+			var onChangeDirReady = function(e) {
+				updateDir(e.entry.fullPath || '/'); // root has entry's fullPath as undefined
+				log('Directory Changed.');
+			};
+			
+			var onReadEntriesRequest = function(e) {
+				log('Reading Entries of "' + e.entry.fullPath + '"..');
+			};
+			
+			var onReadEntries = function(e) {
+				var space = '&nbsp;&nbsp;&nbsp;&nbsp;';
+				var len = e.entries.length;
+				if (!len) {
+					log(space + 'Empty.');
+					return;
+				}
+				for (var i = 0; i < len; i++) {
+					var toLog = space;
+					var entry = e.entries[i];
+					toLog += entry.name;
+					if (entry.isDirectory) {
+						toLog += '/';
+					}
+					log(toLog);
+				}
+			};
+			
+			var onSaveRequest = function(e) {
+				log('Saving File:');
+				log('&nbsp;&nbsp;-- ' + e.path);
+			};
+			
+			var onSaveReady = function(e) {
+				log('File Saved!');
+				log('&nbsp;&nbsp;-- URL: ' + e.entry.toURL());
+			};
+			
+			fq.push(startFileManager);
+			console.log('CALLING START');
+			fq.start();
+			
+		//-->
+		</script>
+	</body>
+</html>

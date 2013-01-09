@@ -54,7 +54,7 @@
 	};
 	
 	// THE CLASS YO
-	var FileManager = grahamzibar.io.FileManager = function FileManager(type, size) {
+	var FileManager = grahamzibar.io.FileManager = function FileManager(type, opt_size) {
 		this.inheritFrom = grahamzibar.events.EventDispatcher;
 		this.inheritFrom();
 		delete this.inheritFrom;
@@ -81,6 +81,7 @@
 		
 		// HANDLERS
 		var errorHandler = function(e) {
+			_queue.clear();
 			var event = new ErrorEvent(e, FileManager.errorHandler(e));
 			__self__.dispatchEvent(FileManager.ERROR, event);
 			return event;
@@ -100,8 +101,7 @@
 			_used = used;
 			_available = available;
 			_capacity = used + available;
-			console.log('INFO - used:', Math.round(used / 1024), 'kB - available:',
-						Math.round(available / 1024), 'kB');
+			console.log('INFO - used:', used, '- available:', available);
 			var fsEvent = new FileSystemEvent(_fileSystem, used, available, _capacity);
 			if (!_initialized)
 				__self__.dispatchEvent(FileManager.FILESYSTEM_READY, fsEvent);
@@ -128,6 +128,8 @@
 					_modifyEntry = entry;
 				else
 					_toDirectory = entry;
+			} else if (_state == FileManager.LIST_ACTION) {
+				entry.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
 			}
 			// WRITE_ACTION and REQUEST_ACTION have no saved reference.
 			__self__.dispatchEvent(FileManager.DIRECTORY_READY, dirEvent);
@@ -234,24 +236,32 @@
 			if (!create && create !== false)
 				create = true;
 			
+			console.log(path, create)
 			if (create) {
 				if (typeof path != 'object')
 					path = new String(path);
-				if (path.charAt(path.length - 1) == '')
+				if (path.charAt(path.length - 1) === '/')
 					path = path.substring(0, path.length - 1);
 				
 				path = path.split('/');
-				
-				var builder = '';
 				var length = path.length;
-				var lastIndex = length - 1;
 				
-				for (var i = !path[0] ? 1 : 0; i < length; i++) {
-					if (_state == FileManager.OPEN_ACTION) {
+				if (_state == FileManager.OPEN_ACTION) {
+					if (!path[0]) {
+						path.shift();
+						path[0] = '/' + path[0];
+						length--;
+					}
+					for (var i = 0; i < length; i++) {
+						console.log(path[i]);
 						requestDirectory(path[i], true);
-					} else {
-						builder += '/';
+					}
+				} else {
+					var builder = '';
+					for (var i = 0; i < length; i++) {
 						builder += path[i];
+						builder += '/';
+						console.log(builder);
 						requestDirectory(builder, true);
 					}
 				}
@@ -260,9 +270,9 @@
 		};
 		
 		var fileSystemAsync = function() {
-			console.log('FILESYSTEM REQUESTED');
+			console.log('FILESYSTEM REQUESTED', opt_size);
 			setState(FileManager.REQUEST_ACTION);
-			window.requestFileSystem(type, size, fileSystemHandler, fileSystemErrorHandler);
+			window.requestFileSystem(type, opt_size, fileSystemHandler, fileSystemErrorHandler);
 		};
 		var fileSystem = function() {
 			_queue.push(fileSystemAsync, arguments);
@@ -278,11 +288,12 @@
 		};
 		
 		var requestDirectoryAsync = function(path, create) {
-			//if (_state != FileManager.OPEN_ACTION)
+			if (!create && create !== false)
+				create = true;
 			__self__.dispatchEvent(FileManager.DIRECTORY_REQUESTED, new EntryRequestEvent(path, create));
-			if (path == _directory.fullPath)
-				_queue.next();
-			else
+			if (path == _directory.fullPath) {
+				directoryHandler(_directory);
+			} else
 				_directory.getDirectory(path, { create: create }, directoryHandler, directoryErrorHandler);
 		};
 		var requestDirectory = function() {
@@ -380,6 +391,8 @@
 		
 		// STARTERS (SET STATE OF MANAGER)
 		var changeDirAsync = function(path, create) {
+			if (!create && create !== false)
+				create = true;
 			console.log('CHANGE DIRECTORY REQUESTED');
 			setState(FileManager.OPEN_ACTION);
 			__self__.dispatchEvent(FileManager.DIRECTORY_CHANGE_REQUESTED, new EntryRequestEvent(path, create));
@@ -625,6 +638,7 @@
 		var saveNewFileAsync = function(name, data) {
 			setState(FileManager.WRITE_ACTION);
 			__self__.dispatchEvent(FileManager.FILE_CREATE_REQUESTED, new EntryRequestEvent(name, true));
+			
 			fileEntry(name, true);
 			fileWriter();
 			write(data);
@@ -633,11 +647,18 @@
 			_queue.push(saveNewFileAsync, arguments);
 		};
 		
-		var readEntriesAsync = function() {
+		var readEntriesAsync = function(opt_directoryEntry) {
 			console.log('READ ENTRIES REQUESTED');
 			setState(FileManager.LIST_ACTION);
 			__self__.dispatchEvent(FileManager.ENTRIES_LIST_REQUESTED, new RequestEvent(_directory));
-			_directory.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
+			if (opt_directoryEntry) {
+				if (typeof opt_directoryEntry == 'string') {
+					requestDirectory(opt_directoryEntry, false);
+					_queue.next();
+				} else
+					opt_directoryEntry.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
+			} else
+				_directory.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
 		};
 		var readEntries = function() {
 			_queue.push(readEntriesAsync, arguments);
@@ -647,13 +668,24 @@
 		
 		// API
 		var addEventListener = this.addEventListener;
+		
+		var addEventListenerAsync = function(eventName, callback) {
+			addEventListener(eventName, callback);
+			_queue.next();
+		};
 		this.addEventListener = function() {
-			_queue.push(addEventListener, arguments);
+			_queue.push(addEventListenerAsync, arguments);
 		};
 		
+		
 		var removeEventListener = this.removeEventListener;
+		
+		var removeEventListenerAsync = function(eventName, callback) {
+			removeEventListener(eventName, callback);
+			_queue.next();
+		};
 		this.removeEventListener = function() {
-			_queue.push(removeEventListener, arguments);
+			_queue.push(removeEventListenerAsync, arguments);
 		};
 		
 		
@@ -665,6 +697,8 @@
 		this.makeDir = makeDir;
 		this.up = up;
 		this.getParent = getParent;
+		
+		this.readEntries = readEntries;
 		
 		this.copyDir = copyDirectory;
 		this.copyFile = copyFile;
@@ -690,8 +724,8 @@
 		
 		this.updateInfo = usage;
 		this.load = function() {
-			if (!size || size < 0)
-				size = 5*1024*1024; // 5MB default, homie.  That's just the way it is.  Deal with it.
+			if (!opt_size || opt_size < 0)
+				opt_size = 5*1024*1024; // 5MB default, homie.  That's just the way it is.  Deal with it.
 			fileSystem();
 			usage();
 			_queue.start();
@@ -715,7 +749,7 @@
 				break;
 			case FileError.SECURITY_ERR:
 				msg += 'SECURITY: Permission denied, file is deemed unsafe, or '
-				msg += 'too many calls are being made';
+				msg += 'too many calls are being made to the filesystem';
 				break;
 			case FileError.ABORT_ERR:
 				msg += 'ABORTED: call to abort() was invoked';
