@@ -373,7 +373,6 @@
 		var writeAsync = function(data) {
 			var writer;
 			var e;
-			console.log('here as well!');
 			if (_state == FileManager.OPEN_ACTION) {
 				writer = _fileWriter;
 				e = new WriteEvent(_fileEntry, writer);
