@@ -128,7 +128,7 @@ To reiterate, since all functions are queued (except `dispatchEvent` which is in
 
 * `changeDir(directoryEntry)` - **Overloaded method** - Navigates us to a directory using a filesystem entry object we already have.
 
-* `makeDir(pathSTR)` - Similar to the `changeDir` function, but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_READY` event, we gain access to the entry object.
+* `makeDir(pathSTR)` - Similar to the `changeDir` function, but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_MADE` event, we gain access to the entry object.
 
 * `up()` - Same as performing a "**cd ..**".  We essentially navigate up to the parent of our _**current working directory**_.
 
@@ -233,7 +233,7 @@ ModifyEvent {
 
 ListEvent {
 	directory
-	entries // Not an array, but it does have a `length` property
+	entries // Not an array, but it does have a length property
 }
 
 ReadEvent {
@@ -258,12 +258,15 @@ All constants are static and exist as properties of the `FileManager` class.  Be
 
 ##### Request Events #####
 
-Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.  These are _excellent for listening to when the filesystem is working_.
+Request events don't fire when we request for these operations to occur, but when the **FileManager's** queue is ready for these operations to occur.  We'll still have to wait for the asynchronous operations to complete before we can fire our on-complete/fire events.  These are _excellent_ for listening to when the filesystem is working..
 
-* `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  
+* `FileManager.DIRECTORY_REQUESTED` - When a directory is requested in order to perform some operation.  This occurs because we need some reference to a **DirectoryEntry** but we currently do not have one.  
 _returns_ `EntryRequestEvent`
 
-* `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory.  
+* `FileManager.DIRECTORY_CHANGE_REQUESTED` - Whenever we attempt to navigate into a directory using `changeDir`.  
+_returns_ `EntryRequestEvent`
+
+* `FileManager.DIRECTORY_MAKE_REQUESTED` - If for some reason we desire to make a diretory which we believe to not yet exist using the `makeDir` function.  
 _returns_ `EntryRequestEvent`
 
 * `FileManager.FILE_REQUESTED` - The **FileEntry** has been asked for.  
@@ -311,10 +314,13 @@ _returns_ `FileSystemEvent`
 * `FileManager.INFO_UPDATED` - We now have the latest filesystem informaton.  
 _returns_ `FileSystemEvent`
 
-* `FileManager.DIRECTORY_READY` - A diretory that was requested is now available  
+* `FileManager.DIRECTORY_READY` - A diretory that was requested is now available.  _ANY_ dirextory action fires this event.  
 _returns_ `EntryReadyEvent`
 
 * `FileManager.DIRECTORY_CHANGED` - If we not only requested a diretory, but did it through `changeDir` and we have navigated into it, this event is fired.  
+_returns_ `EntryReadyEvent`
+
+* `FileManager.DIRECTORY_MADE` - Here, we have requested a directory (so `FileManager.DIRECTORY_READY` also fires) using `makeDir`.  This means we have explicitly requested a directory for the purpose of creating it whether or not it already exists.  
 _returns_ `EntryReadyEvent`
 
 * `FileManager.FILE_READY` - Whenever a file entry has been requested to perform an operation and is now available.  
