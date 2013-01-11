@@ -62,7 +62,7 @@ Most (if not all) calls to the filesystem are asynchronous but no interface for 
 
 For doing something very basic, it's already hard to follow.  Also, what if "**/Documents**" doesn't exist?  What if "**HelloWorld.txt**" doesn't exist within it?  We would need separate error handlers for each operation which, in turn, would create the proper filesystem entries and then we would have to recall our original task.  To create bug-free code, it helps to have organized code and, with the way this system is built, it becomes hard to do so for more complicated tasks.
 
-To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, completed.  The secret is these operations are not performed necessarily when you call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
+To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, completed.  The nice thing about tasks is we can group a series of operations together and not have to worry about the indiviual events; we can simply listen for the task to be finished.  The secret about all of **FileManager**'s operations is that they're not performed necessarily when you call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
 
 ~~~
 
@@ -130,11 +130,11 @@ To reiterate, since all functions are queued (except `dispatchEvent` which is in
 
 * `makeDir(pathSTR)` - Similar to the `changeDir` function, but we won't be navigated to that directory and it will always be created for us.  If we listen to the `DIRECTORY_MADE` event, we gain access to the entry object.
 
-* `up()` - Same as performing a "**cd ..**".  We essentially navigate up to the parent of our _**current working directory**_.
+* `up()` - Same as performing a **cd ..** (so much like `changeDir` so the `FileManager.DIRECTORY_CHANGED` event fires upon completion) which means we navigate up to the _parent_ of our _**current working directory**_.
 
-* `getParent(opt_entry)` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.  We can also pass in an entry object we already have to request for its parent.
+* `getParent(opt_entry)` - Like `up`, but we don't navigate into the directory.  The purpose would be to listen to the `DIRECTORY_READY` event and use the entry property in the event object returned.  We can also pass in an entry object we already have to request for its parent as opposed to the parent of the _**current working directory**_
 
-* `readEntries(opt_directoryEntry)' - A lot like **ls**, this will either use the `opt_directoryEntry` or our _**current working directory**_ as the parent entry from which to list its entries.
+* `readEntries(opt_directoryEntry)` - A lot like **ls**, this will either use the `opt_directoryEntry` or our _**current working directory**_ as the parent entry from which to list its entries.
 
 
 #### Entry Modifiction ####
