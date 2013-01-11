@@ -53,6 +53,16 @@
 		this.message = msg;
 	};
 	
+	// FileSystem State
+	var FileManagerState = function FileManagerState(fs, ready, length, dir, fileEntry, file, fileWriter) {
+		this.fileSystem = fs;
+		this.initialized = ready;
+		this.queueLength = length;
+		this.fileEntry = fileEntry;
+		this.file = file;
+		this.fileWriter = fileWriter;
+	};
+	
 	// THE CLASS YO
 	var FileManager = grahamzibar.io.FileManager = function FileManager(type, opt_size) {
 		this.inheritFrom = grahamzibar.events.EventDispatcher;
@@ -159,7 +169,7 @@
 			console.log('FILE READ COMPLETE');
 			_file = file;
 			var e = new ReadEvent(_fileEntry, file);
-			__self__.dispatch(FileManager.FILE_READ, e);
+			__self__.dispatchEvent(FileManager.FILE_READ, e);
 			if (_state == FileManager.OPEN_ACTION)
 				__self__.dispatchEvent(FileManager.FILE_OPENED, e);
 			_queue.next();
@@ -191,8 +201,7 @@
 		};
 		
 		var moveEntryHandler = function(entry) {
-			console.log('MOVE ENTRY COMPLETE - Name:', entry.name, '- From:',
-						'- To:', _toDirectory.fullPath);
+			console.log(FileManager.RENAME_ACTION ? 'RENAME' : 'MOVE', 'ENTRY COMPLETE - Name:', entry.name, '- To:', _toDirectory.fullPath);
 			var modifyEvent = new ModifyEvent(_state, entry);
 			if (_state == FileManager.MOVE_ACTION)
 				__self__.dispatchEvent(FileManager.ENTRY_MOVED, modifyEvent);
@@ -205,8 +214,7 @@
 		};
 		
 		var copyEntryHandler = function(entry) {
-			console.log('COPY ENTRY COMPLETE - Name:', entry.name, '- From:',
-						'- To:', _toDirectory.fullPath);
+			console.log('COPY ENTRY COMPLETE - Name:', entry.name, '- To:', _toDirectory.fullPath);
 			__self__.dispatchEvent(FileManager.ENTRY_COPIED,
 					new ModifyEvent(_state, entry));
 			_queue.next();
@@ -318,8 +326,6 @@
 			} else
 				fullPath = name;
 			if (_state == FileManager.OPEN_ACTION && _fileEntry && _fileEntry.fullPath == fullPath) {
-			//if ((_state == FileManager.OPEN_ACTION && _fileEntry.fullPath == fullPath) ||
-				//_modifyEntry.fullPath == fullPath) {
 				_queue.next();
 			} else
 				_directory.getFile(name, { create: create }, fileEntryHandler, fileEntryErrorHandler);
@@ -444,7 +450,7 @@
 		var copyAsync = function(entry, toEntry, newName) {
 			entry = entry || _modifyEntry;
 			toEntry = toEntry || _toDirectory;
-			entry.copyTo(entry, toEntry, newName, copyEntryHandler, copyEntryErrorHandler);
+			entry.copyTo(toEntry, newName, copyEntryHandler, copyEntryErrorHandler);
 		};
 		var copy = function() {
 			_queue.push(copyAsync, arguments);
@@ -492,6 +498,7 @@
 		var moveAsync = function(entry, toEntry, newName) {
 			entry = entry || _modifyEntry;
 			toEntry = toEntry || _toDirectory;
+			console.log(entry, toEntry, newName);
 			entry.moveTo(toEntry, newName, moveEntryHandler, moveEntryErrorHandler);
 		};
 		var move = function() {
@@ -540,16 +547,13 @@
 		var renameDirectoryAsync = function(dirName, newName) {
 			setState(FileManager.RENAME_ACTION);
 			__self__.dispatchEvent(FileManager.ENTRY_RENAME_REQUESTED, new ModifyEvent(_state, dirName, null, newName));
+			console.log('HERE!', dirName, newName);
 			requestDirectoryAsync(dirName, false);
 		};
 		var renameDirectory = function(dirName, newName) {
 			_queue.push(renameDirectoryAsync, arguments);
-			if (dirName.charAt(0) != '/')
-				move(null, _directory, newName);
-			else {
-				parent();
-				move(null, null, newName);
-			}
+			parent();
+			move(null, null, newName);
 		};
 		
 		var renameFileAsync = function(fileName, newName) {
@@ -559,12 +563,8 @@
 		};
 		var renameFile = function(fileName, newName) {
 			_queue.push(renameFileAsync, arguments);
-			if (fileName.charAt(0) != '/')
-				move(null, _directory, newName);
-			else {
-				parent();
-				move(null, null, newName);
-			}
+			parent();
+			move(null, null, newName);
 		};
 		
 		var renameEntryAsync = function(entry, newName) {
@@ -737,6 +737,9 @@
 			usage();
 			console.log(_queue.length());
 			_queue.start();
+		};
+		this.getState = function() {
+			return new FileManagerState(_fileSystem, _initialized, _queue.length(), _directory, _fileEntry, _file, _fileWriter);
 		};
 	};
 	/* CONSTANTS */
