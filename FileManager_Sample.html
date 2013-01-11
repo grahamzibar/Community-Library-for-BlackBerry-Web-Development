@@ -11,7 +11,7 @@
 		<!--
 			body {
 				margin:0;
-				padding:0;
+				padding:0 0 30px;
 				text-aling:center;
 			}
 			
@@ -139,9 +139,9 @@
 			fq.closeTask(taskComplete);
 			
 			var fm;
+			var FileManager = blackberry.grahamzibar.io.FileManager;
 			var startFileManager = function() {
 				console.log('FileManager Tests...');
-				var FileManager = blackberry.grahamzibar.io.FileManager;
 				fm = new FileManager(window.TEMPORARY);
 				
 				// EVENTS
@@ -163,6 +163,12 @@
 				
 				// OPERATIONS
 				fm.load();
+				
+				// tests.. (perform these yourself!! :D)
+				fm.makeDir('/path/to/new/dir');
+				fm.changeDir('/path/to/new', false);
+				fm.up();
+				
 				
 				// UI
 				directoryButton.addEventListener('click', changeDir);
@@ -228,12 +234,14 @@
 			var onChangeDirRequest = function(e) {
 				updateDir('...');
 				log('Changing Directory..');
+				log('&nbsp;&nbsp;-- Target: ' + e.path);
 				log('&nbsp;&nbsp;-- Can create: ' + e.create);
 			};
 			
 			var onChangeDirReady = function(e) {
 				updateDir(e.entry.fullPath || '/'); // root has entry's fullPath as undefined
 				log('Directory Changed.');
+				log('&nbsp;&nbsp;-- Path: ' + e.entry.fullPath);
 			};
 			
 			var onReadEntriesRequest = function(e) {

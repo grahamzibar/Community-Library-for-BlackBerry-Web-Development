@@ -119,10 +119,13 @@
 		var directoryHandler = function(entry) {
 			var dirEvent = new EntryReadyEvent(entry);
 			console.log('DIRECTORY ENTRY READY - Path:', entry.fullPath);
+			__self__.dispatchEvent(FileManager.DIRECTORY_READY, dirEvent);
 			if (_state == FileManager.OPEN_ACTION) {
 				_directory = entry;
 				__self__.dispatchEvent(FileManager.DIRECTORY_CHANGED, dirEvent);
-			} else if (_state == FileManager.MOVE_ACTION || _state == FileManager.COPY_ACTION ||
+			} else if (_state == FileManager.WRITE_ACTION)
+				__self__.dispatchEvent(FileManager.DIRECTORY_MADE, dirEvent);
+			else if (_state == FileManager.MOVE_ACTION || _state == FileManager.COPY_ACTION ||
 			_state == FileManager.REMOVE_ACTION || _state == FileManager.RENAME_ACTION) {
 				if (!_modifyEntry)
 					_modifyEntry = entry;
@@ -131,8 +134,7 @@
 			} else if (_state == FileManager.LIST_ACTION) {
 				entry.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
 			}
-			// WRITE_ACTION and REQUEST_ACTION have no saved reference.
-			__self__.dispatchEvent(FileManager.DIRECTORY_READY, dirEvent);
+			// REQUEST_ACTION has no above reference.
 			_queue.next();
 		};
 		var directoryErrorHandler = function(e) {
@@ -236,7 +238,6 @@
 			if (!create && create !== false)
 				create = true;
 			
-			console.log(path, create)
 			if (create) {
 				if (typeof path != 'object')
 					path = new String(path);
@@ -244,30 +245,25 @@
 					path = path.substring(0, path.length - 1);
 				
 				path = path.split('/');
-				var length = path.length;
 				
-				if (_state == FileManager.OPEN_ACTION) {
-					if (!path[0]) {
-						path.shift();
-						path[0] = '/' + path[0];
-						length--;
-					}
-					for (var i = 0; i < length; i++) {
-						console.log(path[i]);
-						requestDirectory(path[i], true);
-					}
-				} else {
-					var builder = '';
-					for (var i = 0; i < length; i++) {
-						builder += path[i];
-						builder += '/';
-						console.log(builder);
-						requestDirectory(builder, true);
-					}
+				var builder;
+				if (!path[0]) {
+					path.shift();
+					builder = '/';
+				} else
+					builder = '';
+				
+				var length = path.length;
+				for (var i = 0; i < length; i++) {
+					builder += path[i];
+					requestDirectory(builder, true);
+					builder += '/';
 				}
 			} else
 				requestDirectory(path, false);
 		};
+		
+		
 		
 		var fileSystemAsync = function() {
 			console.log('FILESYSTEM REQUESTED', opt_size);
@@ -290,11 +286,13 @@
 		var requestDirectoryAsync = function(path, create) {
 			if (!create && create !== false)
 				create = true;
+			
 			__self__.dispatchEvent(FileManager.DIRECTORY_REQUESTED, new EntryRequestEvent(path, create));
-			if (path == _directory.fullPath) {
+			if (path == _directory.fullPath)
 				directoryHandler(_directory);
-			} else
+			else {
 				_directory.getDirectory(path, { create: create }, directoryHandler, directoryErrorHandler);
+			}
 		};
 		var requestDirectory = function() {
 			_queue.push(requestDirectoryAsync, arguments);
@@ -302,6 +300,7 @@
 		
 		var parentAsync = function(entry) {
 			entry = entry || _modifyEntry || _directory;
+			__self__.dispatchEvent(FileManager.DIRECTORY_REQUESTED, new EntryRequestEvent(entry.fullPath + '/..', false));
 			entry.getParent(directoryHandler, directoryErrorHandler);
 		};
 		var parent = function() {
@@ -391,36 +390,41 @@
 		
 		
 		// STARTERS (SET STATE OF MANAGER)
-		var changeDirAsync = function(path, create) {
-			if (!create && create !== false)
-				create = true;
+		var changeDirAsync = function(path, opt_create) {
 			console.log('CHANGE DIRECTORY REQUESTED');
 			setState(FileManager.OPEN_ACTION);
-			__self__.dispatchEvent(FileManager.DIRECTORY_CHANGE_REQUESTED, new EntryRequestEvent(path, create));
-			if (typeof path != 'string')
-				_directory = path;
-			else
-				directory(path, create);
+			__self__.dispatchEvent(FileManager.DIRECTORY_CHANGE_REQUESTED, new EntryRequestEvent(path, opt_create));
 			_queue.next();
 		};
-		var changeDir = function() {
-			_queue.push(changeDirAsync, arguments);
+		var changeDir = function(path, opt_create) {
+			if (!opt_create && opt_create !== false)
+				opt_create = true;
+			_queue.push(changeDirAsync, [path, opt_create]);
+			
+			if (typeof path != 'string')
+				_queue.push(directoryHandler, [path]);
+			else if (path === '/')
+				_queue.push(directoryHandler, [_fileSystem.root]);
+			else
+				directory(path, opt_create);
 		};
 		
 		
-		var makeDirAsync = function(path) {
+		var makeDirAsync = function(pathSTR) {
 			console.log('MAKE DIRECTORY REQUESTED');
 			setState(FileManager.WRITE_ACTION);
-			directory(path, true);
+			__self__.dispatchEvent(FileManager.DIRECTORY_MAKE_REQUESTED, new EntryRequestEvent(pathSTR, true));
 			_queue.next();
 		};
-		var makeDir = function() {
+		var makeDir = function(pathSTR) {
 			_queue.push(makeDirAsync, arguments);
+			directory(pathSTR, true);
 		};
 		
 		
 		var upAsync = function() {
 			setState(FileManager.OPEN_ACTION);
+			__self__.dispatchEvent(FileManager.DIRECTORY_CHANGE_REQUESTED, new EntryRequestEvent(_directory.fullPath + '/..', false));
 			parentAsync();
 		};
 		var up = function() {
@@ -445,41 +449,43 @@
 		var copy = function() {
 			_queue.push(copyAsync, arguments);
 		};
+		
 		var copyDirectoryAsync = function(dirName, to, newName) {
 			setState(FileManager.COPY_ACTION);
-			__self__.dispatchEvent(FileManager.ENTRY_COPY_REQUESTED, new ModifyEvent(_state, dirName, to));
+			__self__.dispatchEvent(FileManager.ENTRY_COPY_REQUESTED, new ModifyEvent(_state, dirName, to, newName || dirName));
+			_queue.next();
+		};
+		var copyDirectory = function(dirName, to, newName) {
+			_queue.push(copyDirectoryAsync, arguments);
 			requestDirectory(dirName, false);
 			requestDirectory(to, false);
 			copy(null, null, newName);
-			_queue.next();
-		};
-		var copyDirectory = function() {
-			_queue.push(copyDirectoryAsync, arguments);
 		};
 		
 		var copyFileAsync = function(fileName, to, newName) {
 			setState(FileManager.COPY_ACTION);
-			
+			__self__.dispatchEvent(FileManager.ENTRY_COPY_REQUESTED, new ModifyEvent(_state, fileName, to, newName || fileName));
+			_queue.next();
+		};
+		var copyFile = function(fileName, to, newName) {
+			_queue.push(copyFileAsync, arguments);
 			fileEntry(fileName, false);
 			requestDirectory(to, false);
 			copy(null, null, newName);
-			_queue.next();
-		};
-		var copyFile = function() {
-			_queue.push(copyFileAsync, arguments);
 		};
 		
 		var copyEntryAsync = function(entry, toEntry, newName) {
 			setState(FileManager.COPY_ACTION);
+			__self__.dispatchEvent(FileManager.ENTRY_COPY_REQUESTED, new ModifyEvent(_state, entry.name, typeof toEntry == 'string' ? toEntry : toEntry.fullPath, newName || entry.name));
+			_queue.next();
+		};
+		var copyEntry = function(entry, toEntry, newName) {
+			_queue.push(copyEntryAsync, arguments);
 			if (typeof toEntry == 'string') {
 				requestDirectory(toEntry, false);
 				copy(entry, null, newName);
 			} else
 				copy(entry, toEntry, newName);
-			_queue.next();
-		};
-		var copyEntry = function() {
-			_queue.push(copyEntryAsync, arguments);
 		};
 		
 		
@@ -491,80 +497,83 @@
 		var move = function() {
 			_queue.push(moveAsync, arguments);
 		};
+		
 		var moveDirectoryAsync = function(dirName, to, newName) {
 			setState(FileManager.MOVE_ACTION);
+			__self__.dispatchEvent(FileManager.ENTRY_MOVE_REQUESTED, new ModifyEvent(_state, dirName, to, newName || dirName));
+			_queue.next();
+		};
+		var moveDirectory = function(dirName, to, newName) {
+			_queue.push(moveDirectoryAsync, arguments);
 			requestDirectory(dirName, false);
 			requestDirectory(to, false);
 			move(null, null, newName);
-			_queue.next();
-		};
-		var moveDirectory = function() {
-			_queue.push(moveDirectoryAsync, arguments);
 		};
 		
 		var moveFileAsync = function(fileName, to, newName) {
 			setState(FileManager.MOVE_ACTION);
+			__self__.dispatchEvent(FileManager.ENTRY_MOVE_REQUESTED, new ModifyEvent(_state, fileName, to, newName || fileName));
+			_queue.next();
+		};
+		var moveFile = function(fileName, to, newName) {
+			_queue.push(moveFileAsync, arguments);
 			fileEntry(fileName, false);
 			requestDirectory(to, false);
 			move(null, null, newName);
-			_queue.next();
-		};
-		var moveFile = function() {
-			_queue.push(moveFileAsync, arguments);
 		};
 		
 		var moveEntryAsync = function(entry, toEntry, newName) {
 			setState(FileManager.MOVE_ACTION);
+			__self__.dispatchEvent(FileManager.ENTRY_MOVE_REQUESTED, new ModifyEvent(_state, entry.name, typeof toEntry == 'string' ? toEntry : toEntry.fullPath, newName || entry.name));
+			_queue.next();
+		};
+		var moveEntry = function(entry, toEntry, newName) {
+			_queue.push(moveEntryAsync, arguments);
 			if (typeof toEntry == 'string') {
 				requestDirectory(toEntry, false);
 				move(entry, null, newName);
 			} else
 				move(entry, toEntry, newName);
-			_queue.next();
-		};
-		var moveEntry = function() {
-			_queue.push(moveEntryAsync, arguments);
 		};
 		
 		
 		var renameDirectoryAsync = function(dirName, newName) {
 			setState(FileManager.RENAME_ACTION);
-			requestDirectory(dirName, false);
+			__self__.dispatchEvent(FileManager.ENTRY_RENAME_REQUESTED, new ModifyEvent(_state, dirName, null, newName));
+			requestDirectoryAsync(dirName, false);
+		};
+		var renameDirectory = function(dirName, newName) {
+			_queue.push(renameDirectoryAsync, arguments);
 			if (dirName.charAt(0) != '/')
 				move(null, _directory, newName);
 			else {
 				parent();
 				move(null, null, newName);
 			}
-			_queue.next();
-		};
-		var renameDirectory = function() {
-			_queue.push(renameDirectoryAsync, arguments);
 		};
 		
 		var renameFileAsync = function(fileName, newName) {
 			setState(FileManager.RENAME_ACTION);
-			fileEntry(fileName);
+			__self__.dispatchEvent(FileManager.ENTRY_RENAME_REQUESTED, new ModifyEvent(_state, fileName, null, newName));
+			fileEntryAsync(fileName);
+		};
+		var renameFile = function(fileName, newName) {
+			_queue.push(renameFileAsync, arguments);
 			if (fileName.charAt(0) != '/')
 				move(null, _directory, newName);
 			else {
 				parent();
 				move(null, null, newName);
 			}
-			_queue.next();
-		};
-		var renameFile = function() {
-			_queue.push(renameFileAsync, arguments);
 		};
 		
 		var renameEntryAsync = function(entry, newName) {
 			setState(FileManager.RENAME_ACTION);
-			parent(entry);
-			move(entry, null, newName);
-			_queue.next();
+			parentAsync(entry);
 		};
-		var renameEntry = function() {
+		var renameEntry = function(entry, newName) {
 			_queue.push(renameEntryAsync, arguments);
+			move(entry, null, newName);
 		};
 		
 		
@@ -581,22 +590,20 @@
 		
 		var removeDirectoryAsync = function(dirName) {
 			setState(FileManager.REMOVE_ACTION);
-			requestDirectory(dirName, false);
-			remove();
-			_queue.next();
+			requestDirectoryAsync(dirName, false);
 		};
 		var removeDirectory = function() {
 			_queue.push(removeDirectoryAsync, arguments);
+			remove();
 		};
 		
 		var removeFileAsync = function(name) {
 			setState(FileManager.REMOVE_ACTION);
-			fileEntry(name, false);
-			remove();
-			_queue.next();
+			fileEntryAsync(name, false);
 		};
 		var removeFile = function() {
 			_queue.push(removeFileAsync, arguments);
+			remove();
 		};
 		
 		var removeEntryAsync = function(entry) {
@@ -611,43 +618,41 @@
 		var openFileAsync = function(name, create) {
 			setState(FileManager.OPEN_ACTION);
 			__self__.dispatchEvent(FileManager.FILE_OPEN_REQUESTED, new EntryRequestEvent(name, create));
-			fileEntry(name, create);
-			fileRead();
+			fileEntryAsync(name, create);
 		};
 		var openFile = function() {
 			_queue.push(openFileAsync, arguments);
+			fileRead();
 		};
 		
-		var appendToAsync = function(data) {
+		var appendToAsync = function() {
 			setState(FileManager.OPEN_ACTION);
-			fileWriter();
+			fileWriterAsync();
+		};
+		var appendTo = function(data) {
+			_queue.push(appendToAsync, arguments);
 			append(data);
 		};
-		var appendTo = function() {
-			_queue.push(appendToAsync, arguments);
-		};
 		
-		var writeToAsync = function(data) {
+		var writeToAsync = function() {
 			setState(FileManager.OPEN_ACTION);
-			fileWriter();
-			write(data);
+			fileWriterAsync();
 		};
-		var writeTo = function() {
+		var writeTo = function(data) {
 			_queue.push(writeToAsync, arguments);
+			write(data);
 		};
 		
 		var saveNewFileAsync = function(name, data) {
 			setState(FileManager.WRITE_ACTION);
 			__self__.dispatchEvent(FileManager.FILE_CREATE_REQUESTED, new EntryRequestEvent(name, true));
-			
+			_queue.next();
+		};
+		var saveNewFile = function(name, data) {
+			_queue.push(saveNewFileAsync, arguments);
 			fileEntry(name, true);
 			fileWriter();
 			write(data);
-			
-			_queue.next();
-		};
-		var saveNewFile = function() {
-			_queue.push(saveNewFileAsync, arguments);
 		};
 		
 		var readEntriesAsync = function(opt_directoryEntry) {
@@ -655,10 +660,9 @@
 			setState(FileManager.LIST_ACTION);
 			__self__.dispatchEvent(FileManager.ENTRIES_LIST_REQUESTED, new RequestEvent(_directory));
 			if (opt_directoryEntry) {
-				if (typeof opt_directoryEntry == 'string') {
-					requestDirectory(opt_directoryEntry, false);
-					_queue.next();
-				} else
+				if (typeof opt_directoryEntry == 'string')
+					requestDirectoryAsync(opt_directoryEntry, false);
+				else
 					opt_directoryEntry.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
 			} else
 				_directory.createReader().readEntries(readEntriesHandler, readEntriesErrorHandler);
@@ -672,8 +676,8 @@
 		// API
 		var addEventListener = this.addEventListener;
 		
-		var addEventListenerAsync = function(eventName, callback) {
-			addEventListener(eventName, callback);
+		var addEventListenerAsync = function() {
+			addEventListener.apply(__self__, arguments);
 			_queue.next();
 		};
 		this.addEventListener = function() {
@@ -683,8 +687,8 @@
 		
 		var removeEventListener = this.removeEventListener;
 		
-		var removeEventListenerAsync = function(eventName, callback) {
-			removeEventListener(eventName, callback);
+		var removeEventListenerAsync = function() {
+			removeEventListener.apply(__self__, arguments);
 			_queue.next();
 		};
 		this.removeEventListener = function() {
@@ -731,6 +735,7 @@
 				opt_size = 5*1024*1024; // 5MB default, homie.  That's just the way it is.  Deal with it.
 			fileSystem();
 			usage();
+			console.log(_queue.length());
 			_queue.start();
 		};
 	};
@@ -811,6 +816,8 @@
 	FileManager.DIRECTORY_CHANGE_REQUESTED = 'directory_change_requested';
 	FileManager.DIRECTORY_CHANGED = 'directory_changed';
 	
+	FileManager.DIRECTORY_MAKE_REQUESTED = 'directory_make_requested';
+	FileManager.DIRECTORY_MADE = 'directory_made';
 	
 	FileManager.FILE_REQUESTED = 'file_requested';
 	FileManager.FILE_READY = 'file_ready';
