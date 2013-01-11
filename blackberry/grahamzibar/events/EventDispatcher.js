@@ -20,8 +20,7 @@
 				_count[event] = 0;
 			}
 			_count[event]++;
-			var id = callback.blackberry_grahamzibar_events_EventDispatcher_ID = ID++;
-			rry[id] = callback;
+			rry[callback.blackberry_grahamzibar_events_EventDispatcher_ID || ++ID] = callback;
 		};
 		
 		this.removeEventListener = function removeEventListener(event, callback) {
