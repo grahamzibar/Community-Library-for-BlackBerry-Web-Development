@@ -6,17 +6,17 @@ Truth.
 
 ## Namespace ##
 
-All libraries in this repo are located within the `blackberry.grahamzibar` namespace.  Mostly because I like building apps and code for the WebWorks platform on BlackBerry and also because my username is grahamzibar.  Makes sense, yeah?
+All libraries in this repo are located within the `blackberry.lib` namespace.
 
 ## Event Dispatcher ##
 
 No requirements.
 
-	blackberry.grahamzibar.events.EventDispatcher;
+	blackberry.lib.events.EventDispatcher;
 	
 	// Example
 	var Dispatcher = function Dispatcher() {
-		this.inheritFrom = blackberry.grahamzibar.events.EventDispatcher;
+		this.inheritFrom = blackberry.lib.events.EventDispatcher;
 		this.inheritFrom();
 		delete this.inheritFrom;
 		
@@ -34,7 +34,7 @@ No requirements.
 
 ## FileManager ##
 
-Requires `blackberry.grahamzibar.events.EventDispatcher` and `blackberry.grahamzibar.utils.FunctionQueue`.
+Requires `blackberry.lib.events.EventDispatcher` and `blackberry.lib.utils.FunctionQueue`.
 
 ### How it works ###
 
@@ -62,7 +62,7 @@ Most (if not all) calls to the filesystem are asynchronous but no interface for 
 
 For doing something very basic, it's already hard to follow.  Also, what if **/Documents** doesn't exist?  What if **HelloWorld.txt** doesn't exist within it?  We would need separate error handlers for each operation which, in turn, would create the proper filesystem entries and then we would have to recall our original task.  To create bug-free code, it helps to have organized code and, with the way this system is built, it becomes hard to do so for more complicated tasks.
 
-To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.grahamzibar.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, completed.  The nice thing about tasks is we can group a series of operations together and not have to worry about the indiviual events; we can simply listen for the task to be finished.  The secret about all of **FileManager**'s operations is that they're not performed necessarily when you call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.grahamzibar.utils.FunctionQueue` class.  Here's an example:
+To Free you of this burden, I have written the `blackberry.lib.io.FileManager` class.  It essentially provides a way to queue filesystem operations one after the other and handle for you the creation of non-existent directories or files you've requested.  It gives you the freedom of listening to one generic error event or events specific to certain operations (such as move, copy, etc) by inheriting the `blackberry.lib.events.EventDispatcher` class.  It also allows you to create *tasks* to which you can simply listen for when they start and end when they are, eventually, completed.  The nice thing about tasks is we can group a series of operations together and not have to worry about the indiviual events; we can simply listen for the task to be finished.  The secret about all of **FileManager**'s operations is that they're not performed necessarily when you call them, but are queued until the filesystem is ready to call them by wrapping the `blackberry.lib.utils.FunctionQueue` class.  Here's an example:
 
 ~~~
 
@@ -80,7 +80,7 @@ To Free you of this burden, I have written the `blackberry.grahamzibar.io.FileMa
 
 	console.log('Hello World');
 
-})(blackberry.grahamzibar.io.FileManager);
+})(blackberry.lib.io.FileManager);
 
 ~~~
 
@@ -89,7 +89,7 @@ The key thing to note in the above code example is these operations are **not** 
 ### API ###
 
 #### Constructor ####
-* `new blackberry.grahamzibar.io.FileManager(type, opt_size)` - The parameter `type` is either one of the constants window.TEMPORARY or window.PERSISTENT (depending how your app needs to store data) and, by default, `opt_size` is our request for the size of the filesystem in bytes.  By default, we request 5 MB but many implementations of HTML5 FileSystem storage provides us with a much larger amount of data than we request.  
+* `new blackberry.lib.io.FileManager(type, opt_size)` - The parameter `type` is either one of the constants window.TEMPORARY or window.PERSISTENT (depending how your app needs to store data) and, by default, `opt_size` is our request for the size of the filesystem in bytes.  By default, we request 5 MB but many implementations of HTML5 FileSystem storage provides us with a much larger amount of data than we request.  
 **NOTE**: to access the _real_ filesystem and not a sandboxed filesystem on **BlackBerry 10**, we must add the following before intializing our filesystem: `blackberry.io.sandbox = false;`.  We _must_ add the feature element `<feature id="blackberry.io" />` to the config.xml despite what the [documentation](https://developer.blackberry.com/html5/apis/blackberry.io.html) tells you.
 
 #### Events ####
@@ -121,7 +121,7 @@ filesystem.closeTask(completeCallback);
 filesystem.closeTask(completeCallback);
 ~~~
 
-To reiterate, since all functions are queued (except `dispatchEvent` which is inherited from `blackberry.grahamzibar.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move the file but it queues several operations: requesting **MoveMe.txt**, requesting the directory **/now/to/another/path**, and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
+To reiterate, since all functions are queued (except `dispatchEvent` which is inherited from `blackberry.lib.events.EventDispatcher`), calling `openTask` does **NOT** start the task, but queues the starting of the task until the `FileManager` is ready to do so.  For example, `moveFile` does not actually move the file but it queues several operations: requesting **MoveMe.txt**, requesting the directory **/now/to/another/path**, and then using both to perform the actual **moveTo** operation specified in the [File System API](http://www.w3.org/TR/file-system-api/).  All three of those operations are asynchronous and thus we need to wait for all of them to have been completed successfully before proceeding to actually start the subtask **RenameFile**.
 
 #### Navigation and Directories ####
 * `changeDir(pathSTR, opt_CreateBOOL)` - Much like **cd** in a terminal or command prompt, this function allows us to navigate _into_ a directory and make it our _**current working directory**_.  By default, `opt_CreateBOOL` is **true** (hence the opt_ since this parameter is optional and is of boolean type) and will take care of creating the directory for you if it does not already exists.  It actually takes it one step further and will create any non-existent directory in the path tree.  For example, if you pass **/path/to/my/heart/** to the function but **my** and **heart** don't exist, `changeDir` will take care of that for you unless you explicity pass **false** as the second argument.
@@ -254,7 +254,7 @@ ErrorEvent {
 
 #### Event Constants ####
 
-All constants are static and exist as properties of the `FileManager` class.  Below, we just refer to the class as is but don't forget it exists within the `blackberry.grahamzibar.io` namespace.  Just like in an example above, I like to cache classes into variables as so: `var FileManager = blackberry.grahamzibar.io.FileManager`.
+All constants are static and exist as properties of the `FileManager` class.  Below, we just refer to the class as is but don't forget it exists within the `blackberry.lib.io` namespace.  Just like in an example above, I like to cache classes into variables as so: `var FileManager = blackberry.lib.io.FileManager`.
 
 ##### Request Events #####
 
