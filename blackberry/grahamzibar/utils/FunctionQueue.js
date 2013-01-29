@@ -2,10 +2,10 @@
 (function FunctionQueueStaticScope() {
 	if (!window.blackberry)
 		blackberry = new Object();
-	if (!blackberry.grahamzibar)
-		blackberry.grahamzibar = new Object();
-	if (!blackberry.grahamzibar.utils)
-		blackberry.grahamzibar.utils = new Object();
+	if (!blackberry.lib)
+		blackberry.lib = new Object();
+	if (!blackberry.lib.utils)
+		blackberry.lib.utils = new Object();
 	
 	var Queued = function Queued(id, type, method, args) {
 		this.id = id;
@@ -17,7 +17,7 @@
 	var OPEN_TASK_TYPE = 0;
 	var FUNCTION_TASK_TYPE = 1;
 	var CLOSE_TASK_TYPE = 2;
-	var FunctionQueue = blackberry.grahamzibar.utils.FunctionQueue = function FunctionQueue() {
+	var FunctionQueue = blackberry.lib.utils.FunctionQueue = function FunctionQueue() {
 		var _openTasks = new Array();
 		var _taskQueue = new Array();
 		var _started = false;

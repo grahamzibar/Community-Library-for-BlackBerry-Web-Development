@@ -1,12 +1,12 @@
 /* FileManager */
-(function FileManagerStaticScope(window, grahamzibar) {
+(function FileManagerStaticScope(window, lib) {
 	window.storageInfo = window.storageInfo || window.webkitStorageInfo;
 	window.requestFileSystem = window.requestFileSystem || window.requestFilesystem ||
 								window.webkitRequestFileSystem ||
 								window.webkitRequestFilesystem;
 	
-	if (!grahamzibar.io)
-		grahamzibar.io = new Object();
+	if (!lib.io)
+		lib.io = new Object();
 	
 	
 	// EVENT CLASSES
@@ -64,13 +64,13 @@
 	};
 	
 	// THE CLASS YO
-	var FileManager = grahamzibar.io.FileManager = function FileManager(type, opt_size) {
-		this.inheritFrom = grahamzibar.events.EventDispatcher;
+	var FileManager = lib.io.FileManager = function FileManager(type, opt_size) {
+		this.inheritFrom = lib.events.EventDispatcher;
 		this.inheritFrom();
 		delete this.inheritFrom;
 		
 		var __self__ = this;
-		var _queue = new grahamzibar.utils.FunctionQueue();
+		var _queue = new lib.utils.FunctionQueue();
 		
 		var _fileSystem;
 		var _state;
@@ -861,4 +861,4 @@
 	FileManager.ENTRIES_LIST_REQUESTED = 'entries_list_requested';
 	FileManager.ENTRIES_LISTED = 'entries_listed';
 	FileManager.ENTRIES_LIST_ERROR = 'entries_list_error';
-})(window, blackberry.grahamzibar);
+})(window, blackberry.lib);
