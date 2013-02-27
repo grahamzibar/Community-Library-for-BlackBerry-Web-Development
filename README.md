@@ -31,6 +31,7 @@ No requirements.
 	instance.removeEventListener(eventKey, callback);
 	instance.dispatchEvent(eventKey, eventObj);
 	instance.removeEventListeners(opt_EventKey); // with no eventKey passed, this removes **ALL** listeners.
+	
 
 ## FileManager ##
 
@@ -38,7 +39,7 @@ Requires `blackberry.lib.events.EventDispatcher` and `blackberry.lib.utils.Funct
 
 ### How it works ###
 
-The **HTML5 FileManager** by default kinda sucks.  Why?  [Try it out for yourself](http://www.w3.org/TR/file-system-api/) and come back here with tears of frustration and I'll forgive you for doubting me.
+The **HTML5 File System API** by default is a bit of a pain.  Why?  [Try it out for yourself](http://www.w3.org/TR/file-system-api/) and come back here with tears of frustration and I'll forgive you for doubting me.
 
 Most (if not all) calls to the filesystem are asynchronous but no interface for listening to events exists.  Instead, we're required to pass in callbacks as arguments to filesystem operations and thus it starts to get messy really quickly.  As an example, let's get the filesystem, retrieve a file, and write data to it.
 
@@ -383,3 +384,28 @@ All below events _return_ the `ErrorEvent`.
 * `FileManager.ENTRY_REMOVE_ERROR`
 
 * `FileManager.ENTRIES_LIST_ERROR`
+* 
+
+## Indexed ##
+
+Requires `blackberry.lib.events.EventDispatcher` and `blackberry.lib.utils.FunctionQueue`.
+
+### How it works ###
+
+`blackberry.lib.db.Indexed`
+
+IndexedDB is a new jazzy tool we have for storing _persistent_ information for web apps.  Not everyone supports IndexedDB but, luckily, BlackBerry 10 does!  And I'm happy about that.
+
+**HOWEVER**, the current standard browser environments are left to implement leaves a little to be desired.  For the most part it looks really good on paper but has many of the same issues that the **HTML5 File System API** does (see previous section for more details) with callbacks and the like.  This tool takes it a step further and has an unnecessary large number of classes and, thus, interfaces we need to worry about.  For instance, there's an **IDBKeyRange** class that we use to specify a range of key values when asking for "rows" of data in an object store.  This seems logical, but when you got o use it, it doesn't really make any sense.  You don't create an instance of this class, you call one of its static methods to define a key range which then returns to you an instance of **IDBKeyRange**.  This range then provides information about the KeyRange you just created but... why??  I can understand the database would need to keep a reference of this but do we?  APIs should be as semantic and concise as possible and we should haven't to worry about multiple classes or to pass callback function after callback function and create weird nested code just to accomplish simple tasks.  This is where `blackberry.lib.db.Indexed` comes in handy...
+
+**Indexed** works much like **FileManager** does by queueing and delaying operations you invoke and dispatches events accordingly (_but does an event really dispatch if no one is around to attach an event listener??!_).  This is illustrated below:
+
+~~~
+// Open a database, create the "schema", and add an object to an object store.
+
+// 1. The ol' fashioned way:
+
+// 2. The better way:
+
+
+~~~
