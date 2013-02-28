@@ -401,12 +401,20 @@ IndexedDB is a new jazzy tool we have for storing _persistent_ information for w
 **Indexed** works much like **FileManager** does by queueing and delaying operations you invoke and dispatches events accordingly _(but does an event really dispatch if no one is around to attach an event listener??!)_.  Below, we compare how the current standard implies we do it, and the way I've made things.
 
 ~~~
-// Open a database, update the "schema", add an object to an object store, then retrieve its generated key.
+// Open a database, update the "schema", add an object to an object store, and then retrieve its generated key.
 
 //
 // 1. The ol' fashioned way:
 
 var request = IndexedDB.open('MyDB', 1);
+request.onupgradeneeded = function(e) {
+	// This is our change script and, whenever the version of the database changes, this scripts runs.
+	var db = e.target.result;
+	
+	var store = db.createObjectStore('person', { autoIncrement: true });
+	store.createIndex('email', 'email', { unique: true });
+	store.createIndex('name', 'name', { unique: false });
+};
 request.onsuccess = function(e) {
 	var db = e.target.result;
 	
@@ -440,14 +448,6 @@ request.onsuccess = function(e) {
 request.onerror = function(e) {
 	alert(':(');
 };
-request.onupgradeneeded = function(e) {
-	// This is our change script and, whenever the version of the database changes, this scripts runs.
-	var db = e.target.result;
-	
-	var store = db.createObjectStore('person', { autoIncrement: true });
-	store.createIndex('email', 'email', { unique: true });
-	store.createIndex('name', 'name', { unique: false });
-};
 
 //
 // 2. The better way:
@@ -478,6 +478,6 @@ request.onupgradeneeded = function(e) {
 
 You be the judge: which seems easier to read, easier to write, and, thusly, easier to manage/debug?  Good.  Glad you're on our side :)
 
-Note that we make structural changes to the database via an event called `onupgradeneeded`.  There is an inherent flaw with this as it's essentially an event for **change scripts**.  Perhaps the scenario of a user having database version 1 and needing to upgrade to database version 3 was overlooked - how do we run the change script for version 2?  I'll be more than happy to hear the answer if anyone has one!
+Note that the original way means we make structural changes to the database via an event called `onupgradeneeded`.  There is an inherent flaw with this as it's essentially an event for **change scripts**.  Perhaps the scenario of a user having database version 1 and needing to upgrade to database version 3 was overlooked - how do we run the change script for version 2?  I'll be more than happy to hear the answer if anyone has one!  This and other common problems is what my **Indexed** class solves.
 
 ### API ###
