@@ -396,16 +396,88 @@ Requires `blackberry.lib.events.EventDispatcher` and `blackberry.lib.utils.Funct
 
 IndexedDB is a new jazzy tool we have for storing _persistent_ information for web apps.  Not everyone supports IndexedDB but, luckily, BlackBerry 10 does!  And I'm happy about that.
 
-**HOWEVER**, the current standard browser environments are left to implement leaves a little to be desired.  For the most part it looks really good on paper but has many of the same issues that the **HTML5 File System API** does (see previous section for more details) with callbacks and the like.  This tool takes it a step further and has an unnecessary large number of classes and, thus, interfaces we need to worry about.  For instance, there's an **IDBKeyRange** class that we use to specify a range of key values when asking for "rows" of data in an object store.  This seems logical, but when you got o use it, it doesn't really make any sense.  You don't create an instance of this class, you call one of its static methods to define a key range which then returns to you an instance of **IDBKeyRange**.  This range then provides information about the KeyRange you just created but... why??  I can understand the database would need to keep a reference of this but do we?  APIs should be as semantic and concise as possible and we should haven't to worry about multiple classes or to pass callback function after callback function and create weird nested code just to accomplish simple tasks.  This is where `blackberry.lib.db.Indexed` comes in handy...
+**HOWEVER**, the current standard browser environments are left to implement leaves a lot to be desired.  For the most part it looks really good on paper but has many of the same issues that the **HTML5 File System API** does (see previous section for more details) with callbacks and the like.  This tool takes it a step further and has an unnecessary large number of classes and, thus, interfaces we need to worry about.  For instance, there's an **IDBKeyRange** class that we use to specify a range of key values when asking for "rows" of data in an object store.  This seems logical, but when you got o use it, it doesn't really make any sense.  You don't create an instance of this class, you call one of its static methods to define a key range which then returns to you an instance of **IDBKeyRange**.  This range then provides information about the KeyRange you just created but... why??  I can understand the database would need to keep a reference of this but do we?  APIs should be as semantic and concise as possible and we should haven't to worry about multiple classes or to pass callback function after callback function and create weird nested code just to accomplish simple tasks.  This is where `blackberry.lib.db.Indexed` comes in handy...
 
-**Indexed** works much like **FileManager** does by queueing and delaying operations you invoke and dispatches events accordingly (_but does an event really dispatch if no one is around to attach an event listener??!_).  This is illustrated below:
+**Indexed** works much like **FileManager** does by queueing and delaying operations you invoke and dispatches events accordingly (_but does an event really dispatch if no one is around to attach an event listener??!_).  Below, we compare how the current standard implies we do it, and the way I've made things.
 
 ~~~
-// Open a database, create the "schema", and add an object to an object store.
+// Open a database, update the "schema", add an object to an object store, then retrieve its generated key.
 
+//
 // 1. The ol' fashioned way:
 
+var request = IndexedDB.open('MyDB', 1);
+request.onsuccess = function(e) {
+	var db = e.target.result;
+	
+	var transaction = db.transaction('person', 'readwrite');
+	var store = transaction.objectStore('person');
+	
+	var request = store.add({ name: 'John Doe', email: 'john.doe@domain.com', alive: true });
+	request.onsuccess = function(e) {
+		// We can piggyback on the previous transaction if we keep adding requests!
+		var index = store.index('email');
+		var request = index.openCursor('john.doe@domain.com');
+		request.onsuccess = function(e) {
+			var cursor = e.target.result;
+  			if (cursor) {
+  				alert('The key for ' + cursor.value.name + ' is ' + cursor.key);
+  				cursor.continue();
+  				// this is how we get to our next "row" in the object store.
+  				// We only have one object in the database, so this continue,
+  				// will call our onsuccess again but cursor will be undefined
+  				// and thus the loop will end.  Word.
+  			}
+		};
+		request.onerror = function() {
+			alert('Boo!');
+		};
+	};
+	request.onerror = function(e) {
+		alert('woops!');
+	};
+};
+request.onerror = function(e) {
+	alert(':(');
+};
+request.onupgradeneeded = function(e) {
+	// This is our change script and, whenever the version of the database changes, this scripts runs.
+	var db = e.target.result;
+	
+	var store = db.createObjectStore('person', { autoIncrement: true });
+	store.createIndex('email', 'email', { unique: true });
+	store.createIndex('name', 'name', { unique: false });
+};
+
+//
 // 2. The better way:
 
-
+(function(Indexed) {
+	var schema = {
+		person: {
+			email: { index: true, unique: true },
+			name: { index: true },
+			__key__: true
+		}
+	};
+	
+	var db = new Indexed('MyDB', 1, schema);
+	db.connect();
+	db.insert('person', { name: 'John Doe', email: 'john.doe@domain.com', alive: true });
+	
+	var onRequestComplete = function(e) {
+		var person = e.results[0];
+		alert('The key for ' + person.name + ' is ' + person.__key__);
+	};
+	
+	db.addEventListener(Indexed.REQUEST_COMPLETE, onRequestComplete);
+	db.get('person', { index: 'email', value: 'john.doe@domain.com' });
+	db.removeEventListener(Indexed.REQUEST_COMPLETE, onRequestComplete);
+})(blackberry.lib.db.Indexed);
 ~~~
+
+You be the judge: which seems easier to read, easier to write, and, thusly, easier to manage/debug?  Good.  Glad you're on our side :)
+
+Note that we make structural changes to the database via an event called `onupgradeneeded`.  There is an inherent flaw with this as it's essentially an event for **change scripts**.  Perhaps the scenario of a user having database version 1 and needing to upgrade to database version 3 was overlooked - how do we run the change script for version 2?  I'll be more than happy to hear the answer if anyone has one!
+
+### API ###
