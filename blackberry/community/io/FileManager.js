@@ -133,7 +133,7 @@
 				__self__.dispatchEvent(FileManager.FILESYSTEM_READY, fsEvent);
 			else
 				__self__.dispatchEvent(FileManager.INFO_UPDATED, fsEvent);
-			_initialized = false;
+			_initialized = true;
 			_queue.next();
 		};
 		var usageErrorHandler = function(e) {
@@ -747,12 +747,16 @@
 		
 		this.updateInfo = usage;
 		this.load = function() {
-			if (!opt_size || opt_size < 0)
-				opt_size = 5*1024*1024; // 5MB default, homie.  That's just the way it is.  Deal with it.
-			fileSystem();
-			usage();
-			console.log(_queue.length());
+			if (!_initialized) {
+				if (!opt_size || opt_size < 0)
+					opt_size = 5*1024*1024; // 5MB default, homie.  That's just the way it is.  Deal with it.
+				fileSystem();
+				usage();
+			}
 			_queue.start();
+		};
+		this.pause = function() {
+			_queue.stop();
 		};
 		this.getState = function() {
 			return new FileManagerState(_fileSystem, _initialized, _queue.length(), _directory, _fileEntry, _file, _fileWriter);
@@ -877,4 +881,4 @@
 	FileManager.ENTRIES_LIST_REQUESTED = 'entries_list_requested';
 	FileManager.ENTRIES_LISTED = 'entries_listed';
 	FileManager.ENTRIES_LIST_ERROR = 'entries_list_error';
-})(window, blackberry.lib);
+})(window, blackberry.community);

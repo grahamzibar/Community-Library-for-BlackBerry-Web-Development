@@ -18,14 +18,14 @@
 (function EventDispatcherStaticScope() {
 	if (!window.blackberry)
 		blackberry = new Object();
-	if (!blackberry.lib)
-		blackberry.lib = new Object();
-	if (!blackberry.lib.events)
-		blackberry.lib.events = new Object();
+	if (!blackberry.community)
+		blackberry.community = new Object();
+	if (!blackberry.community.events)
+		blackberry.community.events = new Object();
 	
 	Function.prototype.blackberry_lib_events_EventDispatcher_ID = 0;
 	var ID = 0;
-	blackberry.lib.events.EventDispatcher = function EventDispatcher() {
+	blackberry.community.events.EventDispatcher = function EventDispatcher() {
 		var _events = {};
 		var _count = {};
 		

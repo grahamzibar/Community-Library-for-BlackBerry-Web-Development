@@ -18,10 +18,10 @@
 (function FunctionQueueStaticScope() {
 	if (!window.blackberry)
 		blackberry = new Object();
-	if (!blackberry.lib)
-		blackberry.lib = new Object();
-	if (!blackberry.lib.utils)
-		blackberry.lib.utils = new Object();
+	if (!blackberry.community)
+		blackberry.community = new Object();
+	if (!blackberry.community.utils)
+		blackberry.community.utils = new Object();
 	
 	var Queued = function Queued(id, type, method, args) {
 		this.id = id;
@@ -33,23 +33,26 @@
 	var OPEN_TASK_TYPE = 0;
 	var FUNCTION_TASK_TYPE = 1;
 	var CLOSE_TASK_TYPE = 2;
-	var FunctionQueue = blackberry.lib.utils.FunctionQueue = function FunctionQueue() {
+	var FunctionQueue = blackberry.community.utils.FunctionQueue = function FunctionQueue() {
 		var _openTasks = new Array();
 		var _taskQueue = new Array();
 		var _started = false;
 		var _busy = false;
 		
 		var openTaskHandler = function(id, callback) {
+			if (typeof id == 'function') {
+				callback = id;
+				id = null;
+			}
 			_openTasks[_openTasks.length] = id;
-			console.log('TASK STARTED:', id);
+			console.log('TASK STARTED:', id || 'anonymous');
 			if (callback)
 				callback();
 			nextHandler();
 		};
 		
 		var closeTaskHandler = function(callback) {
-			var id = _openTasks.pop();
-			console.log('TASK COMPLETE:', id);
+			console.log('TASK COMPLETE:', _openTasks.pop() || 'anonymous');
 			if (callback)
 				callback();
 			nextHandler();
