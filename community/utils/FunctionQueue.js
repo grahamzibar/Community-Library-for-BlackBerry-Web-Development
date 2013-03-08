@@ -16,12 +16,10 @@
 
 /* FunctionQueue */
 (function FunctionQueueStaticScope() {
-	if (!window.blackberry)
-		blackberry = new Object();
-	if (!blackberry.community)
-		blackberry.community = new Object();
-	if (!blackberry.community.utils)
-		blackberry.community.utils = new Object();
+	if (!window.community)
+		community = new Object();
+	if (!community.utils)
+		community.utils = new Object();
 	
 	var Queued = function Queued(id, type, method, args) {
 		this.id = id;
@@ -33,7 +31,7 @@
 	var OPEN_TASK_TYPE = 0;
 	var FUNCTION_TASK_TYPE = 1;
 	var CLOSE_TASK_TYPE = 2;
-	var FunctionQueue = blackberry.community.utils.FunctionQueue = function FunctionQueue() {
+	var FunctionQueue = community.utils.FunctionQueue = function FunctionQueue() {
 		var _openTasks = new Array();
 		var _taskQueue = new Array();
 		var _started = false;

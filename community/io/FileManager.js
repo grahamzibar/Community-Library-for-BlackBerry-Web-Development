@@ -881,4 +881,4 @@
 	FileManager.ENTRIES_LIST_REQUESTED = 'entries_list_requested';
 	FileManager.ENTRIES_LISTED = 'entries_listed';
 	FileManager.ENTRIES_LIST_ERROR = 'entries_list_error';
-})(window, blackberry.community);
+})(window, community);
