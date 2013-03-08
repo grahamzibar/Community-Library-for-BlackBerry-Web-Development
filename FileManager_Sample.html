@@ -17,9 +17,9 @@ limitations under the License.
 <html>
 	<head>
 		<title>FileManager Sample</title>
-		<script type="text/javascript" src="blackberry/lib/events/EventDispatcher.js"></script>
-		<script type="text/javascript" src="blackberry/lib/utils/FunctionQueue.js"></script>
-		<script type="text/javascript" src="blackberry/lib/io/FileManager.js"></script>
+		<script type="text/javascript" src="blackberry/community/events/EventDispatcher.js"></script>
+		<script type="text/javascript" src="blackberry/community/utils/FunctionQueue.js"></script>
+		<script type="text/javascript" src="blackberry/community/io/FileManager.js"></script>
 		
 		<style type="text/css">
 		<!--
@@ -110,7 +110,7 @@ limitations under the License.
 			
 			
 			/Test event dispatcher */
-			var ed = new blackberry.lib.events.EventDispatcher();
+			var ed = new blackberry.community.events.EventDispatcher();
 			console.log('EVENT DISPATCHER INITIALIZED');
 			
 			var eventHandler = function(e) {
@@ -124,7 +124,7 @@ limitations under the License.
 			
 			
 			/Test Function Queue */
-			var fq = new blackberry.lib.utils.FunctionQueue();
+			var fq = new blackberry.community.utils.FunctionQueue();
 			
 			var taskStart = function() {
 				console.log('TASK STARTED');
@@ -153,7 +153,7 @@ limitations under the License.
 			fq.closeTask(taskComplete);
 			
 			var fm;
-			var FileManager = blackberry.lib.io.FileManager;
+			var FileManager = blackberry.community.io.FileManager;
 			var startFileManager = function() {
 				console.log('FileManager Tests...');
 				fm = new FileManager(window.TEMPORARY);
